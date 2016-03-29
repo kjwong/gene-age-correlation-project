@@ -2,7 +2,9 @@ library(shiny)
 library(DT)
 library(d3heatmap)
 library(ggplot2)
+
 shinyUI(fluidPage(
+  
   titlePanel("Gene-age correlation in GSM samples"),
   hr(),
 #   fluidRow(

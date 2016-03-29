@@ -65,18 +65,6 @@ shinyServer(function(input, output) {
   upr <- reactive({input$age_range[2]})
   arng <- reactive({lwr():upr()})
   
-  output$plot <- renderPlot({
-    .e <- environment()
-    gsm_age <- gsm_age()
-    ggplot(data=gsm_age, aes(gsm_age[,1]), environment = .e) + 
-      geom_histogram(binwidth=2,fill=I("black"),col=I("gray")) + 
-      labs(x="age",y="# of GSM samples") +
-      geom_vline(x=lwr(), colour="red",size=0.6, linetype="solid") +
-      geom_vline(x=upr(), colour="red",size=0.6, linetype="solid") 
-#       annotate("text", label = paste("total #\n",
-#               dim(gsm_age[which((gsm_age$age>=lwr()) & (gsm_age$age<=upr())),])[1]), 
-#             x = lwr() + (upr()-lwr())/2, y = 100, size = 4, colour = "red")
-  })
   output$plot_caption <- renderText({
     gsm_age <- gsm_age()
     paste("# of samples selected:\n",dim(gsm_age[which((gsm_age$age>=lwr()) & (gsm_age$age<=upr())),])[1])
@@ -84,6 +72,18 @@ shinyServer(function(input, output) {
   output$slider_plot <- renderUI({
     gsm_age <- gsm_age()
     sliderInput("age_range", label = h6("Age range:"), min = min(gsm_age[,1]), max = max(gsm_age[,1]), value = c(30, 40))
+  })
+  output$plot <- renderPlot({
+    .e <- environment()
+    gsm_age <- gsm_age()
+    p <- ggplot(data=gsm_age, aes(gsm_age[,1]), environment = .e) + 
+      geom_histogram(binwidth=2,fill=I("black"),col=I("gray")) + 
+      labs(x="age",y="# of GSM samples") 
+    p + geom_vline(xintercept=as.numeric(lwr()), colour="red",size=0.6, linetype="solid") +
+      geom_vline(xintercept=as.numeric(upr()), colour="red",size=0.6, linetype="solid") 
+#       annotate("text", label = paste("total #\n",
+#               dim(gsm_age[which((gsm_age$age>=lwr()) & (gsm_age$age<=upr())),])[1]), 
+#             x = lwr() + (upr()-lwr())/2, y = 100, size = 4, colour = "red")
   })
   # intersecting col names with sample ids
   st_make <- function(){
@@ -140,7 +140,7 @@ shinyServer(function(input, output) {
   })
   
   # boostrap runs
-  # boot_rho is the output of the boostrap runs
+  # boot_rho is the output of the bootstrap runs
   # It contains <nboot> rows and <#genes> columns
   boot_rho <- reactive({
     clust <- makeCluster(10) # Initiate cluster
@@ -149,24 +149,27 @@ shinyServer(function(input, output) {
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
-    for(n in 1:nboot) {
-      cat(n, "...\n")
-      bag_gsm <- {}
-      for(j in 1:length(arng)) {
-        age_gsm <- rownames(st_gsm_age)[which(st_gsm_age$age==arng[j])]
-        if(length(age_gsm)==1) {
-          bag_gsm <- c(bag_gsm, age_gsm)
-        } else {
-          sel_gsm <- sample(age_gsm, replace=T) # randomness
-          bag_gsm <- c(bag_gsm, unique(sel_gsm))
+    withProgress(message = 'Calculating correlation scores', value = 0, {
+      for(n in 1:nboot) {
+        incProgress(1/nboot,detail=paste("Run",n))
+        cat(n, "...\n")
+        bag_gsm <- {}
+        for(j in 1:length(arng)) {
+          age_gsm <- rownames(st_gsm_age)[which(st_gsm_age$age==arng[j])]
+          if(length(age_gsm)==1) {
+            bag_gsm <- c(bag_gsm, age_gsm)
+          } else {
+            sel_gsm <- sample(age_gsm, replace=T) # randomness
+            bag_gsm <- c(bag_gsm, unique(sel_gsm))
+          }
         }
+        boot_pcl <- st_gsm_pcl[,bag_gsm]
+        boot_age <- st_gsm_age[bag_gsm,]$age
+        clusterExport(clust,varlist = c("boot_pcl","boot_age"),envir=environment())
+        rho <- parApply(clust, boot_pcl, 1, cor, y=boot_age, method="spearman")
+        boot_rho[n,] <- rho
       }
-      boot_pcl <- st_gsm_pcl[,bag_gsm]
-      boot_age <- st_gsm_age[bag_gsm,]$age
-      clusterExport(clust,varlist = c("boot_pcl","boot_age"),envir=environment())
-      rho <- parApply(clust, boot_pcl, 1, cor, y=boot_age, method="spearman")
-      boot_rho[n,] <- rho
-    }
+    })
     stopCluster(clust)
     colnames(boot_rho) <- rownames(st_gsm_pcl)
     boot_rho
@@ -284,7 +287,7 @@ shinyServer(function(input, output) {
   # number of genes
   num_genes <- reactive({
     abs_scores <- abs_scores()
-    df <- data.frame(abs_scores[which(abs_scores[1,]>input$score_mag)])
+    df<-abs_scores[which(as.numeric(abs_scores[1,])>input$score_mag)]
     ncol(df)
   })
 #   num_pos_genes <- reactive({
@@ -302,8 +305,8 @@ shinyServer(function(input, output) {
     ggplot(data=df, aes(x=df[,2]), environment = .e) + 
       geom_histogram(binwidth=.05,fill=I("black"),col=I("gray")) +
       labs(x="abs(score)",y="# of genes") +
-      geom_vline(x=input$score_mag, colour="red",size=0.6, linetype="solid") +
-      geom_vline(x=max(abs_scores()), colour="red",size=0.6, linetype="solid") 
+      geom_vline(xintercept=as.numeric(input$score_mag), colour="red",size=0.6, linetype="solid") +
+      geom_vline(xintercept=as.numeric(max(abs_scores())), colour="red",size=0.6, linetype="solid") 
 #       annotate("text", label = paste("total #\n",num_genes()),
 #               x = lo + (hi-lo)/2, y = 150, size = 4, colour = "red")
   })
