@@ -198,82 +198,109 @@ shinyServer(function(input, output) {
   })
   # positive pcl table
   pos_pcl <- eventReactive(input$tablepcl,{
-    bxs_boot_fisherz <- bxs_boot_fisherz()
-    st_age_pcl_rowz <- st_age_pcl_rowz()
-    pos_predg <- pos_predg()
-#     print(gene_sym()["6888",])
-#     print(t(bxs_boot_fisherz[4,"6888"]))
-#     print(is.matrix(st_age_pcl_rowz))
-#     print(st_age_pcl_rowz["6888",])
-#     print(apply(st_age_pcl_rowz["6888",], 2, sprintf, fmt="%.6f"))
-    pos_predg_pcl_rowz <- cbind(gene_sym()[pos_predg,],
-                                t(bxs_boot_fisherz[4,pos_predg]), 
-                                apply(st_age_pcl_rowz[pos_predg,], 2, sprintf, fmt="%.6f"))
-    colnames(pos_predg_pcl_rowz) <- c("symbol", "name","score", arng())
-    pos_predg_pcl_rowz[order(-pos_predg_pcl_rowz$score,pos_predg_pcl_rowz$name),]
+    withProgress(message = 'Generating positive data', detail = "Part 1", value = 0, {
+      bxs_boot_fisherz <- bxs_boot_fisherz()
+      st_age_pcl_rowz <- st_age_pcl_rowz()
+      incProgress(0.25, detail = paste("Part", 2))
+      pos_predg <- pos_predg()
+      incProgress(0.25, detail = paste("Part", 3))
+      pos_predg_pcl_rowz <- cbind(gene_sym()[pos_predg,],
+                                  t(bxs_boot_fisherz[4,pos_predg]), 
+                                  apply(st_age_pcl_rowz[pos_predg,], 2, sprintf, fmt="%.6f"))
+      colnames(pos_predg_pcl_rowz) <- c("symbol", "name","score", arng())
+      incProgress(0.4, detail = paste("Part", 4))
+      pos_predg_pcl_rowz[order(-pos_predg_pcl_rowz$score,pos_predg_pcl_rowz$name),]
+    })
   })
   # negative pcl table
   neg_pcl <- eventReactive(input$tablepcl,{
-    bxs_boot_fisherz <- bxs_boot_fisherz()
-    st_age_pcl_rowz <- st_age_pcl_rowz()
-    neg_predg <- neg_predg()
-    neg_predg_pcl_rowz <- cbind(gene_sym()[neg_predg,],
-                                t(bxs_boot_fisherz[4,neg_predg]), 
-                                apply(st_age_pcl_rowz[neg_predg,], 2, sprintf, fmt="%.6f"))
-    colnames(neg_predg_pcl_rowz) <- c("symbol", "name","score", arng())
-    neg_predg_pcl_rowz[order(neg_predg_pcl_rowz$score,neg_predg_pcl_rowz$name),]
+    withProgress(message = 'Generating negative data', detail = "Part 1", value = 0, {
+      bxs_boot_fisherz <- bxs_boot_fisherz()
+      st_age_pcl_rowz <- st_age_pcl_rowz()
+      incProgress(0.25, detail = paste("Part", 2))
+      neg_predg <- neg_predg()
+      incProgress(0.25, detail = paste("Part", 3))
+      neg_predg_pcl_rowz <- cbind(gene_sym()[neg_predg,],
+                                  t(bxs_boot_fisherz[4,neg_predg]), 
+                                  apply(st_age_pcl_rowz[neg_predg,], 2, sprintf, fmt="%.6f"))
+      colnames(neg_predg_pcl_rowz) <- c("symbol", "name","score", arng())
+      incProgress(0.4, detail = paste("Part", 4))
+      neg_predg_pcl_rowz[order(neg_predg_pcl_rowz$score,neg_predg_pcl_rowz$name),]
+    })
   })
   # all predictive genes
   all_predg <- eventReactive(input$runpcl, {
      bxs_boot_fisherz <- bxs_boot_fisherz()
+    withProgress(message="Filtering genes with high scores", value = 0.1, {
      all_predg <- colnames(bxs_boot_fisherz)[which((bxs_boot_fisherz[4,]>0 & bxs_boot_fisherz[6,]>=1) | 
                                                      (bxs_boot_fisherz[4,]<0 & bxs_boot_fisherz[2,]<=-1))]
+     incProgress(0.9)
+    })
+    all_predg
   })
+  # positive predictive genes greater than slider
   select_pos_predg <- eventReactive(input$rungt,{
     bxs_boot_fisherz <- bxs_boot_fisherz()
     colnames(bxs_boot_fisherz)[which(((bxs_boot_fisherz[4,]>0 & bxs_boot_fisherz[6,]>=1)&
                                        abs(bxs_boot_fisherz[4,])>input$score_mag))]
   })
+  # negative predictive genes greater than slider
   select_neg_predg <- eventReactive(input$rungt,{
     bxs_boot_fisherz <- bxs_boot_fisherz()
     colnames(bxs_boot_fisherz)[which(((bxs_boot_fisherz[4,]<0 & bxs_boot_fisherz[2,]<=-1)) &
                                        abs(bxs_boot_fisherz[4,])>input$score_mag)]
   })
+  # gene ontology of positive predictive genes
   output$pos_goterms <- DT::renderDataTable({
     all_predg <- select_pos_predg()
-    gsm_pcl <- gsm_pcl()
-    ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
-    geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
-    names(geneList) <- rownames(gsm_pcl)
-    selector <- function(x) {return (x==0)}
-    sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
-                        geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-    resultFisher <- runTest(sampleGOdata, algorithm = "classic", statistic = "fisher")
-    resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
-    # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
-    allRes <- GenTable(sampleGOdata, classicFisher = resultFisher,
-                       classicKS = resultKS, 
-                       #                    elimKS = resultKS.elim,
-                       orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
+    withProgress(message = "Generating positive GO terms\n", detail = "Compiling tables", value = 0, {
+      gsm_pcl <- gsm_pcl()
+      incProgress(0.1, detail = "Compiling tables")
+      ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
+      incProgress(0.3, detail = "Building GO DAG topology and annotations")
+      geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
+      names(geneList) <- rownames(gsm_pcl)
+      selector <- function(x) {return (x==0)}
+      sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
+                          geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
+      incProgress(0.2, detail = "Running Fisher test")
+      resultFisher <- runTest(sampleGOdata, algorithm = "classic", statistic = "fisher")
+      incProgress(0.2, detail = "Running KS test")
+      resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
+      # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
+      incProgress(0.2, detail = "Aggregating results")
+      allRes <- GenTable(sampleGOdata, classicFisher = resultFisher,
+                         classicKS = resultKS, 
+                         #                    elimKS = resultKS.elim,
+                         orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
+    })
     cap <- paste('Table 5: Top 50 GO terms enriched in positively correlated genes')
     DT::datatable(allRes, rownames=TRUE, caption = cap)
   })
+  # gene ontology of negative predictive genes
   output$neg_goterms <- DT::renderDataTable({
     all_predg <- select_neg_predg()
-    gsm_pcl <- gsm_pcl()
-    ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
-    geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
-    names(geneList) <- rownames(gsm_pcl)
-    selector <- function(x) {return (x==0)}
-    sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
-                        geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-    resultFisher <- runTest(sampleGOdata, algorithm = "classic", statistic = "fisher")
-    resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
-    # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
-    allRes <- GenTable(sampleGOdata, classicFisher = resultFisher,
-                       classicKS = resultKS, 
-                       #                    elimKS = resultKS.elim,
-                       orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
+    withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0, {
+      gsm_pcl <- gsm_pcl()
+      incProgress(0.1, detail = "Compiling tables")
+      ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
+      incProgress(0.3, detail = "Building GO DAG topology and annotations")
+      geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
+      names(geneList) <- rownames(gsm_pcl)
+      selector <- function(x) {return (x==0)}
+      sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
+                          geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
+      incProgress(0.2, detail = "Running Fisher test")
+      resultFisher <- runTest(sampleGOdata, algorithm = "classic", statistic = "fisher")
+      incProgress(0.2, detail = "Running KS test")
+      resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
+      # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
+      incProgress(0.2, detail = "Aggregating results")
+      allRes <- GenTable(sampleGOdata, classicFisher = resultFisher,
+                         classicKS = resultKS, 
+                         #                    elimKS = resultKS.elim,
+                         orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
+    })
     cap <- paste('Table 6: Top 50 GO terms enriched in negatively correlated genes')
     DT::datatable(allRes, rownames=TRUE, caption = cap)
   })
@@ -290,12 +317,7 @@ shinyServer(function(input, output) {
     df<-abs_scores[which(as.numeric(abs_scores[1,])>input$score_mag)]
     ncol(df)
   })
-#   num_pos_genes <- reactive({
-#     length(pos_predg())
-#   })
-#   num_neg_genes <- reactive({
-#     length(neg_predg())
-#   })
+
   # histogram plot of magnitudes
   output$plot2 <- renderPlot({
     .e <- environment()

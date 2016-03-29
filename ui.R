@@ -79,6 +79,7 @@ shinyUI(fluidPage(
         column(4,
           textOutput("plot_caption"))
       ),
+      helpText("Use the slider to select samples of an age range."),
       actionButton("runpcl","Run gene-age correlation"),
       hr(),
       h3("# of 'predictive' genes (scores of magnitude > 1):"),
@@ -89,13 +90,11 @@ shinyUI(fluidPage(
         column(4,
           textOutput("plot2_caption"))
       ),
+      helpText("Use the slider to set a correlation score threshold."),
       fluidRow(
         column(3,
-          actionButton("tablepcl","See selected genes")),
-        column(3,
-          actionButton("rungt", "See GO term enrichment"))
+          actionButton("tablepcl","See selected genes"))
       ),
-      helpText("Note: GO term enrichment may take a while."),
       hr(),
       uiOutput("tablescap"),
       tabsetPanel(
@@ -108,15 +107,20 @@ shinyUI(fluidPage(
       hr(),
       tabsetPanel(
         id = 'heatmap',
-        tabPanel('Pos. gene-age heatmap', d3heatmapOutput("posheat")),
-        tabPanel('Neg. gene-age heatmap', d3heatmapOutput("negheat"))
+        tabPanel('Pos. gene by age heatmap', d3heatmapOutput("posheat")),
+        tabPanel('Neg. gene by age heatmap', d3heatmapOutput("negheat"))
       ),
+      hr(),
+      actionButton("rungt", "See GO term enrichment"),
+      helpText("Gene ontology term enrichment of selected genes."),
       hr(),
       tabsetPanel(
         id = 'goterms',
         tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms')),
         tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'))  
-      )
+      ),
+      hr(),
+      helpText("Content by Murphy Lab at Princeton University")
     )
   )
 ))
