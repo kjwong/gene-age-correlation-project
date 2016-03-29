@@ -5,7 +5,7 @@ library(ggplot2)
 
 shinyUI(fluidPage(
   
-  titlePanel("Gene-age correlation in GSM samples"),
+  titlePanel("Web interface for gene-age correlation in GSM samples"),
   hr(),
 #   fluidRow(
 #     column(3,
@@ -71,7 +71,7 @@ shinyUI(fluidPage(
     
     mainPanel(
       textOutput("test"),
-      h3("# of GSM samples by age:"),
+      h3("GSM sample count by age:"),
       plotOutput("plot"),
       fluidRow(
         column(6,
@@ -82,7 +82,7 @@ shinyUI(fluidPage(
       helpText("Use the slider to select samples of an age range."),
       actionButton("runpcl","Run gene-age correlation"),
       hr(),
-      h3("# of 'predictive' genes (scores of magnitude > 1):"),
+      h3("Predictive gene count (corr. scores of magnitude > 1):"),
       plotOutput("plot2"),
       fluidRow(
         column(6,
@@ -110,7 +110,6 @@ shinyUI(fluidPage(
         tabPanel('Pos. gene by age heatmap', d3heatmapOutput("posheat")),
         tabPanel('Neg. gene by age heatmap', d3heatmapOutput("negheat"))
       ),
-      hr(),
       actionButton("rungt", "See GO term enrichment"),
       helpText("Gene ontology term enrichment of selected genes."),
       hr(),
