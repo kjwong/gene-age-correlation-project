@@ -82,7 +82,10 @@ shinyUI(fluidPage(
       helpText("Use the slider to select samples of an age range."),
       actionButton("runpcl","Run gene-age correlation"),
       hr(),
-      h3("Predictive gene count (corr. scores of magnitude > 1):"),
+      conditionalPanel(
+        condition = "output.plot2",
+        h3("Predictive gene count (corr. scores of magnitude > 1):")
+      ),
       plotOutput("plot2"),
       fluidRow(
         column(6,
@@ -90,35 +93,59 @@ shinyUI(fluidPage(
         column(4,
           textOutput("plot2_caption"))
       ),
-      helpText("Use the slider to set a correlation score threshold."),
-      fluidRow(
-        column(3,
-          actionButton("tablepcl","See selected genes"))
+      conditionalPanel(
+        condition = "output.plot2",
+        helpText("Use the slider to set a correlation score threshold."),
+        fluidRow(
+          column(3,
+            actionButton("tablepcl","See selected genes"))
+        ),
+        hr()
       ),
-      hr(),
-      uiOutput("tablescap"),
-      tabsetPanel(
-        id = 'dataset',
-        tabPanel('Pos. scores', DT::dataTableOutput('ptable')),
-        tabPanel('Neg. scores', DT::dataTableOutput('ntable')),
-        tabPanel('Pos. exp. values by age', DT::dataTableOutput('ppcl')),
-        tabPanel('Neg. exp. values by age', DT::dataTableOutput('npcl'))
+      conditionalPanel(
+        condition = "input.tablepcl",
+        h3("Your selected genes:")
       ),
-      hr(),
-      tabsetPanel(
-        id = 'heatmap',
-        tabPanel('Pos. gene by age heatmap', d3heatmapOutput("posheat")),
-        tabPanel('Neg. gene by age heatmap', d3heatmapOutput("negheat"))
+      conditionalPanel(
+        condition = "input.tablepcl",
+        tabsetPanel(
+          id = 'dataset',
+          tabPanel('Pos. scores', DT::dataTableOutput('ptable'),
+                   conditionalPanel(condition="output.ptable",downloadButton("ptable_dl","Download"))),
+          tabPanel('Neg. scores', DT::dataTableOutput('ntable'),
+                   conditionalPanel(condition="output.ntable",downloadButton("ntable_dl","Download"))),
+          tabPanel('Pos. exp. values by age', DT::dataTableOutput('ppcl'),
+                   conditionalPanel(condition="output.ppcl",downloadButton("ppcl_dl","Download"))),
+          tabPanel('Neg. exp. values by age', DT::dataTableOutput('npcl'),
+                   conditionalPanel(condition="output.npcl",downloadButton("npcl_dl","Download")))
+        ),
+        hr(),
+        tabsetPanel(
+          id = 'heatmap',
+          tabPanel('Pos. gene by age heatmap', d3heatmapOutput("posheat")),
+          tabPanel('Neg. gene by age heatmap', d3heatmapOutput("negheat"))
+        )
       ),
-      actionButton("rungt", "See GO term enrichment"),
-      helpText("Gene ontology term enrichment of selected genes."),
-      hr(),
-      tabsetPanel(
-        id = 'goterms',
-        tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms')),
-        tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'))  
+      conditionalPanel(
+        condition = "output.ptable",
+        fluidRow(
+          column(4,
+            actionButton("rungt", "Run GO term analysis"),
+            helpText("See the most enriched GO terms in your selected genes.")
+          )
+        ),
+        hr()
       ),
-      hr(),
+      conditionalPanel(
+        condition = "input.rungt",
+        h3("GO term analysis"),
+        tabsetPanel(
+          id = 'goterms',
+          tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms')),
+          tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'))  
+        ),
+        hr()
+      ),
       helpText("Content by Murphy Lab at Princeton University")
     )
   )
