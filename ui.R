@@ -77,6 +77,7 @@ shinyUI(fluidPage(
         column(6,
           uiOutput("slider_plot")),
         column(4,
+               hr(),
           textOutput("plot_caption"))
       ),
       helpText("Use the slider to select samples of an age range."),
@@ -91,6 +92,7 @@ shinyUI(fluidPage(
         column(6,
           uiOutput("slider_plot2")),
         column(4,
+               hr(),
           textOutput("plot2_caption"))
       ),
       conditionalPanel(
@@ -128,12 +130,10 @@ shinyUI(fluidPage(
       ),
       conditionalPanel(
         condition = "output.ptable",
-        fluidRow(
-          column(4,
             actionButton("rungt", "Run GO term analysis"),
-            helpText("See the most enriched GO terms in your selected genes.")
-          )
-        ),
+            helpText("See the most enriched GO terms in your selected genes."),
+          
+        
         hr()
       ),
       conditionalPanel(
