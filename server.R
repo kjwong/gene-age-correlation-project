@@ -328,7 +328,7 @@ shinyServer(function(input, output) {
     d3heatmap(neg_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7)
   })
   # gene ontology of positive predictive genes
-  output$pos_goterms <- DT::renderDataTable({
+  pos_go <- reactive({
     all_predg <- select_pos_predg()
     withProgress(message = "Generating positive GO terms\n", detail = "Compiling tables", value = 0.1, {
       gsm_pcl <- gsm_pcl()
@@ -351,11 +351,9 @@ shinyServer(function(input, output) {
                          #                    elimKS = resultKS.elim,
                          orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
     })
-    cap <- paste('Table 5: Top 50 GO terms enriched in positively correlated genes')
-    DT::datatable(allRes, rownames=TRUE, caption = cap)
+    allRes
   })
-  # gene ontology of negative predictive genes
-  output$neg_goterms <- DT::renderDataTable({
+  neg_go <- reactive({
     all_predg <- select_neg_predg()
     withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0.1, {
       gsm_pcl <- gsm_pcl()
@@ -378,8 +376,32 @@ shinyServer(function(input, output) {
                          #                    elimKS = resultKS.elim,
                          orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
     })
+    allRes
+  })
+  output$pos_goterms <- DT::renderDataTable({
+    allRes <- pos_go()
+    cap <- paste('Table 5: Top 50 GO terms enriched in positively correlated genes')
+    DT::datatable(allRes, rownames=TRUE, caption = cap,options = list(columnDefs = list(list(
+      targets = 2,
+      render = JS(
+        "function(data, type, row, meta) {",
+        "return type === 'display' && data.length > 20 ?",
+        "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+        "}")
+    ))))
+  })
+  # gene ontology of negative predictive genes
+  output$neg_goterms <- DT::renderDataTable({
+    allRes <- neg_go()
     cap <- paste('Table 6: Top 50 GO terms enriched in negatively correlated genes')
-    DT::datatable(allRes, rownames=TRUE, caption = cap)
+    DT::datatable(allRes, rownames=TRUE, caption = cap,options = list(columnDefs = list(list(
+      targets = 2,
+      render = JS(
+        "function(data, type, row, meta) {",
+        "return type === 'display' && data.length > 20 ?",
+        "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+        "}")
+    ))))
   })
   output$ptable_dl <- downloadHandler(
     filename = function(){"pos_genes.csv"},
@@ -396,6 +418,14 @@ shinyServer(function(input, output) {
   output$npcl_dl <- downloadHandler(
     filename = function(){"neg_genes_scores.csv"},
     content = function(file){write.csv(neg_pcl(),file)}
+  )
+  output$pgo_dl <- downloadHandler(
+    filename = function(){"pos_genes_goterms.csv"},
+    content = function(file){write.csv(pos_go(),file)}
+  )
+  output$ngo_dl <- downloadHandler(
+    filename = function(){"neg_genes_goterms.csv"},
+    content = function(file){write.csv(neg_go(),file)}
   )
 })
   

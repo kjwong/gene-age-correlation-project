@@ -141,8 +141,10 @@ shinyUI(fluidPage(
         h3("GO term analysis"),
         tabsetPanel(
           id = 'goterms',
-          tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms')),
-          tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'))  
+          tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms'),
+                   conditionalPanel(condition="output.pos_goterms",downloadButton("pgo_dl","Download"))),
+          tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'),
+                   conditionalPanel(condition="output.neg_goterms",downloadButton("ngo_dl","Download")))  
         ),
         hr()
       ),
