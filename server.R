@@ -10,60 +10,97 @@ options(shiny.maxRequestSize = 1000*1024^2)
 #numcores <- detectCores() - 1 # Find no. cores
 
 shinyServer(function(input, output) {
-  # list of samples --INPUT
-  st_samples <- reactive({
-    st_samples <- read.table("race_healthy1-samples.txt")
-    as.vector(st_samples$V1)
-  })
+  
   # INPUT
+
+  # reading the entire pcl 
   gsm_pcl <- reactive({
-    data.frame(fread(paste0('blood.', 'f', '.pcl'), header=T), row.names=1)
+    withProgress(message = "Reading expression data",value=0.1,{
+      inFile <- input$file1
+      if (is.null(inFile))
+        return(NULL)   
+      gsm_pcl <- data.frame(fread(inFile$datapath, header = input$header1,sep=input$sep1), row.names = 1)
+      incProgress(0.9)
+    })
+    gsm_pcl
   })
-  # not input
+
+  # reading-in sample annotations -INPUT
+  # st_samples, gsm_age, filters
+  gsm_input <- eventReactive(input$upload2, {
+      inFile <- input$file2
+      if (is.null(inFile))
+        return(NULL)   
+      gsm_input <- read.table(inFile$datapath, header=input$header2, sep = input$sep2, row.names=1)
+      colnames(gsm_input) <- tolower(colnames(gsm_input))
+      
+    gsm_input
+  })
+
+  # dynamic filters
+  output$filters <- renderUI({
+    df <- gsm_input()
+    df <- df[, !(colnames(df) %in% c("age"))]
+    numcol <- length(colnames(df)) 
+    lapply(1:numcol,function(i){
+      selectInput(inputId=paste0("filter",i),label=paste("Filter samples by",colnames(df)[i]),as.character(unique(df[,i])),multiple=TRUE)
+    })
+  })
+
+  # list of samples filtered down
+  st_samples <- reactive({
+    df <- gsm_input()
+    df <- df[, !(colnames(df) %in% c("age"))]
+    numcol <- length(colnames(df)) 
+    for (i in seq(1:numcol)) {
+      filter <- input[[paste0("filter",i)]]
+    
+      if (length(filter) != 0) { 
+        df <- df[which(df[,i] %in% filter),]
+      }
+    }
+    rownames(df)
+  })
+  # list of gene names
   gene_sym <- reactive({
     read.delim("human_gene-info_ncbi.txt", header=T, row.names=1, sep="\t")
   })
-  gsm_age <- reactive({
-    gsm_age <- read.table(paste0('blood.', 'f', '.txt'), row.names=1)
-    colnames(gsm_age) <- c('age','gse')
+
+  # list of sample ages
+  gsm_age <- eventReactive(input$run_samples,{
+    gsm_input <- gsm_input()
+    st_samples <- st_samples()
+    
+    gsm_age <- data.frame(gsm_input["age"])
+    gsm_age <- data.frame(gsm_age[which(rownames(gsm_age) %in% st_samples),],rownames=FALSE)    
+
+    rownames(gsm_age) <- intersect(rownames(gsm_input),st_samples)
     gsm_age
   })
-
-  # gene ids, symbols, names
-#   gene_sym <- eventReactive(input$upload2, {
-#     inFile <- input$file2
-#     if (is.null(inFile))
-#       return(NULL)
-#     read.delim(inFile$datapath, sep=input$sep2,header=input$header2,row.names=1) 
-#   })
-  
-  # reading-in the entire pcl (both healthy and disease) --INPUT TISSUE,SEX
-#   gsm_pcl <- eventReactive(input$upload1, {
-#     inFile <- input$file1
-#     if (is.null(inFile))
-#       return(NULL)   
-#     data.frame(fread(inFile$datapath, header = input$header1), row.names = 1)
-#   })
-  
-  # reading-in sample age annotations --INPUT TISSUE,SEX
-#   gsm_age <- eventReactive(input$upload3, {
-#     inFile <- input$file3
-#     if (is.null(inFile))
-#       return(NULL)   
-#     read.table(inFile$datapath, header=input$header3, row.names=1,col.names=c('age','gse'))
-#   })
+  # read button
+  output$upload2 <- renderUI({
+    if (is.null(input$file2)) return()
+    actionButton("upload2", "Read in file")
+  })
+  # age range
   lwr <- reactive({input$age_range[1]})
   upr <- reactive({input$age_range[2]})
   arng <- reactive({lwr():upr()})
-  
+  # plot 1 caption
   output$plot_caption <- renderText({
     gsm_age <- gsm_age()
-    paste("# of samples selected:\n",dim(gsm_age[which((gsm_age$age>=lwr()) & (gsm_age$age<=upr())),])[1])
+    paste("# of samples selected:\n",dim(gsm_age[which((gsm_age[,1]>=lwr()) & (gsm_age[,1]<=upr())),])[1])
   })
+  # plot 1 slider
   output$slider_plot <- renderUI({
     gsm_age <- gsm_age()
-    sliderInput("age_range", label = h6("Age range:"), min = min(gsm_age[,1]), max = max(gsm_age[,1]), value = c(30, 40))
+    quad <- (max(gsm_age[,1]) - min(gsm_age[,1])) / 4
+    sliderInput("age_range", label = h6("Choose an age range:"), min = min(gsm_age[,1]), 
+                max = max(gsm_age[,1]), 
+                value = c(min(gsm_age[,1]) + quad, max(gsm_age[,1] - 2 * quad)))
+                
   })
+  # plot 1
   output$plot <- renderPlot({
     .e <- environment()
     gsm_age <- gsm_age()
@@ -77,23 +114,22 @@ shinyServer(function(input, output) {
   st_make <- function(){
     gsm_age <- gsm_age()
     gsm_pcl <- gsm_pcl()
-    intersect(st_samples(),
-              intersect(rownames(gsm_age)[which((gsm_age$age>=lwr()) & (gsm_age$age<=upr()))],
-                        colnames(gsm_pcl)))
+    intersect(rownames(gsm_age)[which((gsm_age[,1]>=lwr()) & (gsm_age[,1]<=upr()))],
+              colnames(gsm_pcl))
   }
-    
   # creating pcl for samples
   st_gsm_pcl <- reactive({
     gsm_pcl <- gsm_pcl()
-    st_samples <- st_make()
-    gsm_pcl[,st_samples]
+    st_make <- st_make()
+    gsm_pcl[,st_make]
   })
   # gsm age for samples
   st_gsm_age <- reactive({
     gsm_age <- gsm_age()
-    st_samples <- st_make()
-    gsm_age[st_samples,]
+    st_make <- st_make()
+    gsm_age[st_make,]
   })
+
   # creating pcl of genes per age with median of gene-expression values per gene
   st_age_pcl <- reactive({
     st_gsm_age <- st_gsm_age()
@@ -101,7 +137,7 @@ shinyServer(function(input, output) {
     arng <- arng()
     st_age_pcl <- array(NaN, c(nrow(st_gsm_pcl()), length(lwr():upr())))
     for(j in 1:length(arng)) {
-      age_gsm <- rownames(st_gsm_age)[which(st_gsm_age$age==arng[j])]
+      age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])]
       if(length(age_gsm)==1) {
         st_age_pcl[,j] <- st_gsm_pcl[,age_gsm]
       } else {
@@ -139,7 +175,7 @@ shinyServer(function(input, output) {
         cat(n, "...\n")
         bag_gsm <- {}
         for(j in 1:length(arng)) {
-          age_gsm <- rownames(st_gsm_age)[which(st_gsm_age$age==arng[j])]
+          age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])]
           if(length(age_gsm)==1) {
             bag_gsm <- c(bag_gsm, age_gsm)
           } else {
@@ -148,7 +184,7 @@ shinyServer(function(input, output) {
           }
         }
         boot_pcl <- st_gsm_pcl[,bag_gsm]
-        boot_age <- st_gsm_age[bag_gsm,]$age
+        boot_age <- st_gsm_age[bag_gsm,][,1]
         clusterExport(clust,varlist = c("boot_pcl","boot_age"),envir=environment())
         rho <- parApply(clust, boot_pcl, 1, cor, y=boot_age, method="spearman")
         boot_rho[n,] <- rho
@@ -163,7 +199,8 @@ shinyServer(function(input, output) {
     st_gsm_pcl <- st_gsm_pcl()
     boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) }))
     bxs_boot_fisherz <- apply(boot_fisherz, 2, quantile, probs=c(1, 0.9, 0.75, 0.5, 0.25, 0.1, 0), na.rm=T)
-    bxs_boot_fisherz <- data.frame(bxs_boot_fisherz); colnames(bxs_boot_fisherz) <- rownames(st_gsm_pcl)
+    bxs_boot_fisherz <- data.frame(bxs_boot_fisherz)
+    colnames(bxs_boot_fisherz) <- rownames(st_gsm_pcl)
     bxs_boot_fisherz
   })
   # magnitudes of scores of predictive genes

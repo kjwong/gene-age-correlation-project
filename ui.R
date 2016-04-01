@@ -7,89 +7,78 @@ shinyUI(fluidPage(
   
   titlePanel("Web interface for gene-age correlation in GSM samples"),
   hr(),
-#   fluidRow(
-#     column(3,
-#            helpText("Select a GSM expression file. (.pcl)"),
-#            fileInput('file1', 'Choose file to upload',
-#                      accept = c('.pcl')
-#            ),
-#            tags$hr(),
-#            checkboxInput('header1', 'Header', TRUE),
-#            radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), '\t'),
-#            actionButton("upload1", "Enter"),
-#            tags$hr()
-#     ),
-#     column(3,
-#            helpText("Select a file with gene IDs, symbols, and names. (.txt)"),
-#            fileInput('file2', 'Choose file to upload',
-#                      accept = c('.txt')
-#            ),
-#            tags$hr(),
-#            checkboxInput('header2', 'Header', TRUE),
-#            radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), '\t'),
-#            actionButton("upload2", "Enter"),
-#            tags$hr()
-#     ),
-#     column(3,
-#            helpText("Select a file with sample age annotations. (.txt)"),
-#            fileInput('file3', 'Choose file to upload',
-#                      accept = c('.txt')
-#            ),
-#            tags$hr(),
-#            checkboxInput('header3', 'Header', TRUE),    
-#            radioButtons('sep3', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), '\t'),
-#            actionButton("upload3", "Enter"),
-#            tags$hr()
-#     ), 
-#     column(3,
-#            helpText("Select a file with your selected samples. (.txt)"),
-#            fileInput('file4', 'Choose file to upload',
-#                      accept = c('.txt')
-#            ),
-#            tags$hr(),
-#            checkboxInput('header4', 'Header', TRUE),    
-#            radioButtons('sep4', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), '\t'),
-#            actionButton("upload4", "Enter"),
-#            tags$hr()
-#     )       
-#   ),
+  h4("This app lets you visualize which genes are most correlated with age in a specified age range."),
+  h4("Upload (1) GSM sample expression data and (2) a table of GSM samples and their ages, and hit run!"),
+  hr(),
+
   sidebarLayout(
     sidebarPanel(
-      # checkbox button for sex
-      checkboxGroupInput("sex", label = h4("Sex:"), 
-                         choices = list("Male" = 1, "Female" = 2), selected = (2)),
-      checkboxGroupInput("tissue", label = h4("Tissue:"), choices = list("Blood" = 1, "Other" = 2), selected = 1),
-      checkboxGroupInput("status", label = h4("Status:"), choices = list("Healthy" = 1, "Other" = 2), selected = 1),
+      helpText("Select a GSM sample expression file."),
+      fileInput('file1', 'Choose file to upload',accept = c('.pcl')),
+      radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=TRUE, '\t'),
+      checkboxInput('header1', 'Header', TRUE),
+      tags$hr(),
+      helpText("Select a file with GSM samples and their ages."),
+      fileInput('file2', 'Choose file to upload',accept = c(
+        'text/csv',
+        'text/comma-separated-values',
+        'text/tab-separated-values',
+        'text/plain',
+        '.csv',
+        '.tsv'
+      )),
+      radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=TRUE, ','),
+      checkboxInput('header2', 'Header', TRUE),    
+      
+      uiOutput("upload2"),
+      conditionalPanel(
+        condition = "input.upload2",
+        tags$hr()
+      ),
+      uiOutput("filters"),
+      conditionalPanel(
+        condition = "input.upload2",
+        helpText("If left blank, all samples will be used."),
+        hr(),
+        actionButton("run_samples", "Run samples")
+      ),
       hr(),
-      actionButton("run_filter", "Run filter")
+      helpText("Content by Murphy Lab at Princeton University")
     ),
     
     mainPanel(
-      textOutput("test"),
-      h3("GSM sample count by age:"),
-      plotOutput("plot"),
-      fluidRow(
-        column(6,
-          uiOutput("slider_plot")),
-        column(4,
-               hr(),
-          textOutput("plot_caption"))
+      conditionalPanel(
+        condition = "input.run_samples",
+        h3("GSM sample count by age:"),
+        plotOutput("plot"),
+        fluidRow(
+          column(6,
+            uiOutput("slider_plot")),
+          column(4,
+                 hr(),
+            textOutput("plot_caption"))
+        ),
+        helpText("Use the slider to select samples of an age range."),
+        actionButton("runpcl","Run gene-age correlation"),
+        hr()
       ),
-      helpText("Use the slider to select samples of an age range."),
-      actionButton("runpcl","Run gene-age correlation"),
-      hr(),
+      
       conditionalPanel(
         condition = "output.plot2",
         h3("Predictive gene count (corr. scores of magnitude > 1):")
       ),
-      plotOutput("plot2"),
-      fluidRow(
-        column(6,
-          uiOutput("slider_plot2")),
-        column(4,
-               hr(),
-          textOutput("plot2_caption"))
+      conditionalPanel(
+        condition = "input.runpcl",
+        plotOutput("plot2"),
+        fluidRow(
+          column(6,
+                 uiOutput("slider_plot2")),
+          column(4,
+                 hr(),
+                 textOutput("plot2_caption"))
+        )
       ),
+
       conditionalPanel(
         condition = "output.plot2",
         helpText("Use the slider to set a correlation score threshold."),
@@ -142,8 +131,7 @@ shinyUI(fluidPage(
                    conditionalPanel(condition="output.neg_goterms",downloadButton("ngo_dl","Download")))  
         ),
         hr()
-      ),
-      helpText("Content by Murphy Lab at Princeton University")
+      )
     )
   )
 ))
