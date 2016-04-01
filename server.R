@@ -15,35 +15,26 @@ shinyServer(function(input, output) {
     st_samples <- read.table("race_healthy1-samples.txt")
     as.vector(st_samples$V1)
   })
-  gene_sym <- reactive({
-    read.delim("human_gene-info_ncbi.txt", header=T, row.names=1, sep="\t")
-  })
+  # INPUT
   gsm_pcl <- reactive({
     data.frame(fread(paste0('blood.', 'f', '.pcl'), header=T), row.names=1)
+  })
+  # not input
+  gene_sym <- reactive({
+    read.delim("human_gene-info_ncbi.txt", header=T, row.names=1, sep="\t")
   })
   gsm_age <- reactive({
     gsm_age <- read.table(paste0('blood.', 'f', '.txt'), row.names=1)
     colnames(gsm_age) <- c('age','gse')
     gsm_age
   })
-#   st_samples <- eventReactive(input$upload4, {
-#     inFile <- input$file4
-#     if (is.null(inFile))
-#       return(NULL)   
-#     t <- read.table(inFile$datapath)
-#     as.vector(t$V1)
-#   })
+
   # gene ids, symbols, names
 #   gene_sym <- eventReactive(input$upload2, {
 #     inFile <- input$file2
 #     if (is.null(inFile))
 #       return(NULL)
 #     read.delim(inFile$datapath, sep=input$sep2,header=input$header2,row.names=1) 
-#   })
-#   sex <- reactive ({
-#     if (input$sex == c(1,2)) c('m','f')
-#     else if (input$sex == 1) 'm'
-#     else 'f'
 #   })
   
   # reading-in the entire pcl (both healthy and disease) --INPUT TISSUE,SEX
@@ -126,9 +117,9 @@ shinyServer(function(input, output) {
     st_gsm_pcl <- st_gsm_pcl()
     idx <- apply(st_age_pcl,1,var)
     st_age_pcl_rowz <- t(apply(st_age_pcl, 1, scale))
-    st_age_pcl_rowz[idx==0] <- st_age_pcl[idx==0]
-    colnames(st_age_pcl_rowz) <- arng()
     rownames(st_age_pcl_rowz) <- rownames(st_gsm_pcl)
+    st_age_pcl_rowz <- st_age_pcl_rowz[-which(idx==0),]
+    colnames(st_age_pcl_rowz) <- arng()
     st_age_pcl_rowz
   })
   
@@ -230,6 +221,7 @@ shinyServer(function(input, output) {
       st_age_pcl_rowz <- st_age_pcl_rowz()
       incProgress(1/3, detail = "1/3")
       pos_predg <- pos_predg()
+      pos_predg <- intersect(pos_predg, rownames(st_age_pcl_rowz))
       incProgress(1/3, detail = "2/3")
       pos_predg_pcl_rowz <- cbind(gene_sym()[pos_predg,],
                                   t(bxs_boot_fisherz[4,pos_predg]), 
@@ -246,6 +238,7 @@ shinyServer(function(input, output) {
       st_age_pcl_rowz <- st_age_pcl_rowz()
       incProgress(1/3, detail = "1/3")
       neg_predg <- neg_predg()
+      neg_predg <- intersect(neg_predg, rownames(st_age_pcl_rowz))
       incProgress(1/3, detail = "2/3")
       neg_predg_pcl_rowz <- cbind(gene_sym()[neg_predg,],
                                   t(bxs_boot_fisherz[4,neg_predg]), 

@@ -61,12 +61,7 @@ shinyUI(fluidPage(
       checkboxGroupInput("tissue", label = h4("Tissue:"), choices = list("Blood" = 1, "Other" = 2), selected = 1),
       checkboxGroupInput("status", label = h4("Status:"), choices = list("Healthy" = 1, "Other" = 2), selected = 1),
       hr(),
-      actionButton("run_filter", "Run filter"),
-      # change later to min and max values filtered by tissue type and sex
-      conditionalPanel('input.dataset === "Pos. scores"'),
-      conditionalPanel('input.dataset === "Neg. scores"'),
-      conditionalPanel('input.dataset === "Pos. exp. values by age"'),
-      conditionalPanel('input.dataset === "Neg. exp. values by age"')
+      actionButton("run_filter", "Run filter")
     ),
     
     mainPanel(
