@@ -1,25 +1,29 @@
 library(shiny)
 library(DT)
 library(d3heatmap)
-library(ggplot2)
+library(shinyBS)
 
 shinyUI(fluidPage(
   
-  titlePanel("Web interface for gene-age correlation in GSM samples"),
+  h1("Web interface for gene-age correlation in GSM samples"),
   hr(),
-  h4("This app lets you visualize which genes are most correlated with age in a specified age range."),
+  h4("This app lets you visualize and analyze the genes most correlated with age in a specified age range."),
   h4("Upload (1) GSM sample expression data and (2) a table of GSM samples and their ages, and hit run!"),
   hr(),
 
   sidebarLayout(
     sidebarPanel(
-      helpText("Select a GSM sample expression file."),
-      fileInput('file1', 'Choose file to upload',accept = c('.pcl')),
-      radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=TRUE, '\t'),
+      h4("Select a GSM sample expression file."),
+      bsTooltip('file1',"Row names: Entrez Gene ID, Column names: GSM accession number",
+                placement="right",trigger="hover"),
+#       helpText("Hover to see format."),
+      fileInput('file1',label=NULL,accept = c('.pcl')),
+      radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, '\t'),
       checkboxInput('header1', 'Header', TRUE),
       tags$hr(),
-      helpText("Select a file with GSM samples and their ages."),
-      fileInput('file2', 'Choose file to upload',accept = c(
+      h4("Select a file with GSM samples and their ages."),
+#       helpText("Hover to see format."),
+      fileInput('file2',label=NULL,accept = c(
         'text/csv',
         'text/comma-separated-values',
         'text/tab-separated-values',
@@ -27,9 +31,11 @@ shinyUI(fluidPage(
         '.csv',
         '.tsv'
       )),
-      radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=TRUE, ','),
+      bsTooltip('file2',"Row names: GSM accession number, Column names: age (required), others (optional)",
+                placement="right",
+                trigger="hover"),
+      radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, ','),
       checkboxInput('header2', 'Header', TRUE),    
-      
       uiOutput("upload2"),
       conditionalPanel(
         condition = "input.upload2",
@@ -97,13 +103,13 @@ shinyUI(fluidPage(
         tabsetPanel(
           id = 'dataset',
           tabPanel('Pos. scores', DT::dataTableOutput('ptable'),
-                   conditionalPanel(condition="output.ptable",downloadButton("ptable_dl","Download"))),
+                   conditionalPanel(condition="output.ptable",downloadButton("ptable_dl","Download table"))),
           tabPanel('Neg. scores', DT::dataTableOutput('ntable'),
-                   conditionalPanel(condition="output.ntable",downloadButton("ntable_dl","Download"))),
+                   conditionalPanel(condition="output.ntable",downloadButton("ntable_dl","Download table"))),
           tabPanel('Pos. exp. values by age', DT::dataTableOutput('ppcl'),
-                   conditionalPanel(condition="output.ppcl",downloadButton("ppcl_dl","Download"))),
+                   conditionalPanel(condition="output.ppcl",downloadButton("ppcl_dl","Download table"))),
           tabPanel('Neg. exp. values by age', DT::dataTableOutput('npcl'),
-                   conditionalPanel(condition="output.npcl",downloadButton("npcl_dl","Download")))
+                   conditionalPanel(condition="output.npcl",downloadButton("npcl_dl","Download table")))
         ),
         hr(),
         tabsetPanel(
@@ -126,9 +132,9 @@ shinyUI(fluidPage(
         tabsetPanel(
           id = 'goterms',
           tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms'),
-                   conditionalPanel(condition="output.pos_goterms",downloadButton("pgo_dl","Download"))),
+                   conditionalPanel(condition="output.pos_goterms",downloadButton("pgo_dl","Download table"))),
           tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'),
-                   conditionalPanel(condition="output.neg_goterms",downloadButton("ngo_dl","Download")))  
+                   conditionalPanel(condition="output.neg_goterms",downloadButton("ngo_dl","Download table")))  
         ),
         hr()
       )
