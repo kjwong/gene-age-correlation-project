@@ -31,7 +31,7 @@ shinyUI(fluidPage(
         '.csv',
         '.tsv'
       )),
-      bsTooltip('file2',"Row names: GSM accession number, Column names: age (required), others (optional)",
+      bsTooltip('file2',"Row names: GSM accession number, Column names: age (required), other (optional)",
                 placement="right",
                 trigger="hover"),
       radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, ','),
