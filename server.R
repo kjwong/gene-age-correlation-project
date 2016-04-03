@@ -179,42 +179,43 @@ shinyServer(function(input, output) {
   # boot_rho is the output of the bootstrap runs
   # It contains <nboot> rows and <#genes> columns
   boot_rho <- reactive({
-      clust <- makeCluster(10) # Initiate cluster
-      arng <- arng()
-      nboot <- 10
-      st_gsm_age <- st_gsm_age()
-      st_gsm_pcl <- st_gsm_pcl()  
-      boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
+    clust <- makeCluster(10) # Initiate cluster
+    arng <- arng()
+    nboot <- 10
+    st_gsm_age <- st_gsm_age()
+    st_gsm_pcl <- st_gsm_pcl()  
+    boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
     withProgress(message = 'Calculating correlation scores', value = 0, {
       for(n in 1:nboot) {
         incProgress(1/nboot,detail=paste("Run",n))
         cat(n, "...\n")
         bag_gsm <- {}
+        # for each age...
         for(j in 1:length(arng)) {
-          age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])]
+          age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])] # GSM names of age
           if(length(age_gsm)==1) {
-            bag_gsm <- c(bag_gsm, age_gsm)
+            bag_gsm <- c(bag_gsm, age_gsm) # if only 1 sample for the age, just add it to the bag
           } else {
-            sel_gsm <- sample(age_gsm, replace=T) # randomness
+            sel_gsm <- sample(age_gsm, replace=T) # sel_gsm will differ every run
             bag_gsm <- c(bag_gsm, unique(sel_gsm))
           }
         }
-        boot_pcl <- st_gsm_pcl[,bag_gsm]
-        boot_age <- st_gsm_age[bag_gsm,][,1]
-        clusterExport(clust,varlist = c("boot_pcl","boot_age"),envir=environment())
-        rho <- parApply(clust, boot_pcl, 1, cor, y=boot_age, method="spearman")
+        boot_pcl <- st_gsm_pcl[,bag_gsm] # exp. values
+        boot_age <- st_gsm_age[bag_gsm,][,1] # ages
+        clusterExport(clust,varlist = c("boot_pcl","boot_age"),envir=environment()) # cluster environment
+        rho <- parApply(clust, boot_pcl, 1, cor, y=boot_age, method="spearman") 
         boot_rho[n,] <- rho
       }
     })
     stopCluster(clust)
-    colnames(boot_rho) <- rownames(st_gsm_pcl)
+    colnames(boot_rho) <- rownames(st_gsm_pcl) # gene names
     boot_rho
   })
 
   # processing rho into comparable correlation scores (fisherz)
   bxs_boot_fisherz <- reactive({
     st_gsm_pcl <- st_gsm_pcl()
-    boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) }))
+    boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) })) # Fisher z distribution
     bxs_boot_fisherz <- apply(boot_fisherz, 2, quantile, probs=c(1, 0.9, 0.75, 0.5, 0.25, 0.1, 0), na.rm=T)
     bxs_boot_fisherz <- data.frame(bxs_boot_fisherz)
     colnames(bxs_boot_fisherz) <- rownames(st_gsm_pcl)
