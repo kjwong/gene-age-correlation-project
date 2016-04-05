@@ -69,11 +69,11 @@ shinyUI(fluidPage(
         actionButton("runpcl","Run gene-age correlation"),
         hr()
       ),
-      
+      uiOutput("nosamp2"),
       conditionalPanel(
         condition = "output.plot2",
         h3("Predictive gene count:"),
-        helpText("Predictive genes are those most correlated with age within this age range (Spearman correlation scores of the highest magnitude).")
+        helpText("Predictive genes are those most correlated with age (Spearman rho of the highest magnitude).")
       ),
       conditionalPanel(
         condition = "input.runpcl",

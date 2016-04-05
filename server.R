@@ -80,7 +80,7 @@ shinyServer(function(input, output) {
     
     gsm_age <- data.frame(gsm_input["age"])
     gsm_age <- data.frame(gsm_age[which(rownames(gsm_age) %in% st_samples),],rownames=FALSE)    
-
+    
     rownames(gsm_age) <- intersect(rownames(gsm_input),st_samples)
     gsm_age
   })
@@ -138,6 +138,10 @@ shinyServer(function(input, output) {
     intersect(rownames(gsm_age)[which((gsm_age[,1]>=lwr()) & (gsm_age[,1]<=upr()))],
               colnames(gsm_pcl))
   }
+  output$nosamp2 <- renderUI({
+    if (length(st_make()) != 0) return()
+    else (helpText("There are 0 samples in your expression data that fit your specified filters."))
+  })
 
   # creating pcl for samples
   st_gsm_pcl <- reactive({
@@ -190,7 +194,7 @@ shinyServer(function(input, output) {
     arng <- arng()
     nboot <- 10
     st_gsm_age <- st_gsm_age()
-    st_gsm_pcl <- st_gsm_pcl()  
+    st_gsm_pcl <- st_gsm_pcl()
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
     withProgress(message = 'Calculating correlation scores', value = 0, {
       for(n in 1:nboot) {
@@ -222,7 +226,7 @@ shinyServer(function(input, output) {
   # processing rho into comparable correlation scores (fisherz)
   bxs_boot_fisherz <- reactive({
     st_gsm_pcl <- st_gsm_pcl()
-    boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) })) # Fisher z distribution
+    boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) })) # Fisher z-transformation
     bxs_boot_fisherz <- apply(boot_fisherz, 2, quantile, probs=c(1, 0.9, 0.75, 0.5, 0.25, 0.1, 0), na.rm=T)
     bxs_boot_fisherz <- data.frame(bxs_boot_fisherz)
     colnames(bxs_boot_fisherz) <- rownames(st_gsm_pcl)
@@ -249,8 +253,7 @@ shinyServer(function(input, output) {
   output$plot2 <- renderPlot({
     .e <- environment()
     df <- cbind(data.frame(all_predg()), t(abs_scores()))
-    lo <- input$score_mag
-    hi <- max(abs_scores())
+    
     ggplot(data=df, aes(x=df[,2]), environment = .e) + 
       geom_histogram(binwidth=.05,fill=I("gray23"),col=I("gray")) +
       labs(x="abs(score)",y="# of genes") +
