@@ -5,10 +5,10 @@ library(shinyBS)
 
 shinyUI(fluidPage(
   
-  h1("Web interface for gene-age correlation in GSM samples"),
+  h1("Web interface for gene-age correlation in GEO datasets"),
   hr(),
   h4("This app lets you visualize and analyze the genes most correlated with age in a specified age range."),
-  h4("Upload (1) GSM sample expression data and (2) a table of GSM samples and their ages, and hit run!"),
+  h4("Upload (1) expression data and (2) a table of the samples and their respective ages, and hit run!"),
   hr(),
 
   sidebarLayout(
