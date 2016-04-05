@@ -132,12 +132,13 @@ shinyServer(function(input, output) {
 
 
   # intersecting col names with sample ids
-  st_make <- function(){
+  st_make <- reactive({
     gsm_age <- gsm_age()
     gsm_pcl <- gsm_pcl()
     intersect(rownames(gsm_age)[which((gsm_age[,1]>=lwr()) & (gsm_age[,1]<=upr()))],
               colnames(gsm_pcl))
-  }
+  })
+
   output$nosamp2 <- renderUI({
     if (length(st_make()) != 0) return()
     else (helpText("There are 0 samples in your expression data that fit your specified filters."))
@@ -399,6 +400,7 @@ shinyServer(function(input, output) {
 
   output$posheat <- renderD3heatmap({
     pos_p <- pos_pcl()
+    pos_p <- pos_p[!(is.na(pos_p[,1]) | pos_p[,1]==""), ]
     rownames(pos_p) <- pos_p[,1]
     pos_p <- pos_p[,-c(1,2,3)]
     # convert factor to numeric data frame
@@ -411,6 +413,7 @@ shinyServer(function(input, output) {
 
   output$negheat <- renderD3heatmap({
     neg_p <- neg_pcl()
+    neg_p <- neg_p[!(is.na(neg_p[,1]) | neg_p[,1]==""), ]
     rownames(neg_p) <- neg_p[,1]
     neg_p <- neg_p[,-c(1,2,3)]
     # convert factor to numeric data frame
