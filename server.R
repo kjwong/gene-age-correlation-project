@@ -48,8 +48,9 @@ shinyServer(function(input, output) {
   })
 
   # list of samples filtered down
-  st_samples <- reactive({
+  st_samples <- eventReactive(input$run_samples,{
     df <- gsm_input()
+    df <- df[!(is.na(df$age) | df$age==""), ]
     df <- df[, !(colnames(df) %in% c("age"))]
     numcol <- length(colnames(df)) 
     for (i in seq(1:numcol)) {
@@ -61,6 +62,12 @@ shinyServer(function(input, output) {
     }
     rownames(df)
   })
+  
+  output$nosamp <- renderUI({
+    if (length(st_samples()) != 0) return()
+    else (helpText("There are 0 samples that fit your specified filters."))
+  })
+  
   # list of gene names
   gene_sym <- reactive({
     read.delim("human_gene-info_ncbi.txt", header=T, row.names=1, sep="\t")

@@ -53,6 +53,7 @@ shinyUI(fluidPage(
     ),
     
     mainPanel(
+      uiOutput("nosamp"),
       conditionalPanel(
         condition = "input.run_samples",
         h3("GSM sample count by age:"),
