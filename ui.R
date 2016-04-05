@@ -72,17 +72,20 @@ shinyUI(fluidPage(
       conditionalPanel(
         condition = "output.plot2",
         h3("Predictive gene count:"),
-        helpText("Predictive genes are those with Spearman correlation scores of the highest magnitude.")
+        helpText("Predictive genes are those most correlated with age within this age range (Spearman correlation scores of the highest magnitude).")
       ),
       conditionalPanel(
         condition = "input.runpcl",
         plotOutput("plot2"),
-        fluidRow(
-          column(6,
-                 uiOutput("slider_plot2")),
-          column(4,
-                 hr(),
-                 textOutput("plot2_caption"))
+        conditionalPanel(
+          condition = "output.plot2",
+          fluidRow(
+            column(6,
+                   uiOutput("slider_plot2")),
+            column(4,
+                   hr(),
+                   textOutput("plot2_caption"))
+          )
         )
       ),
 

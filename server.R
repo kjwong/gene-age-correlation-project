@@ -228,6 +228,7 @@ shinyServer(function(input, output) {
     all_predg <- all_predg()
     data.frame(abs(bxs_boot_fisherz[4,all_predg]))
   })
+
   
   # number of genes
   num_genes <- reactive({
@@ -235,6 +236,7 @@ shinyServer(function(input, output) {
     df<-abs_scores[which(as.numeric(abs_scores[1,])>input$score_mag)]
     ncol(df)
   })
+
 
   # histogram plot2 of magnitudes
   output$plot2 <- renderPlot({
