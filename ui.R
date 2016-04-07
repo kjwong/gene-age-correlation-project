@@ -73,6 +73,7 @@ shinyUI(fluidPage(
         actionButton("runpcl","Run gene-age correlation"),
         hr()
       ),
+      
       uiOutput("nosamp2"),
       conditionalPanel(
         condition = "output.plot2",

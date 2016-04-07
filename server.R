@@ -68,8 +68,9 @@ shinyServer(function(input, output) {
   })
   
   output$nosamp <- renderUI({
-    if (length(st_samples()) != 0) return()
-    else (helpText("There are 0 samples that fit your specified filters."))
+    gsm_age <- gsm_age()
+    if (nrow(gsm_age) == 0) (helpText("There are 0 samples that fit your specified filters."))
+    else return()
   })
   
   # list of gene names
@@ -82,6 +83,7 @@ shinyServer(function(input, output) {
     gsm_input <- gsm_input()
     st_samples <- st_samples()
     
+    if (length(st_samples) == 0) return(data.frame())
     gsm_age <- data.frame(gsm_input["age"])
     gsm_age <- data.frame(gsm_age[which(rownames(gsm_age) %in% st_samples),],rownames=FALSE)    
     
@@ -136,7 +138,7 @@ shinyServer(function(input, output) {
 
 
   # intersecting col names with sample ids
-  st_make <- reactive({
+  st_make <- eventReactive(input$runpcl,{
     gsm_age <- gsm_age()
     gsm_pcl <- gsm_pcl()
     intersect(rownames(gsm_age)[which((gsm_age[,1]>=lwr()) & (gsm_age[,1]<=upr()))],
