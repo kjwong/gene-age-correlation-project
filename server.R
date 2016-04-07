@@ -215,7 +215,7 @@ shinyServer(function(input, output) {
   boot_rho <- reactive({
     clust <- makeCluster(10) # Initiate cluster
     arng <- arng()
-    nboot <- 10
+    nboot <- 2
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
@@ -271,7 +271,6 @@ shinyServer(function(input, output) {
     ncol(df)
   })
 
-
   # histogram plot2 of magnitudes
   output$plot2 <- renderPlotly({
     .e <- environment()
@@ -284,11 +283,11 @@ shinyServer(function(input, output) {
             axis.title=element_text(size=9))
 
     p <- ggplotly(p)
-    p <- p %>%
-      add_trace(x = c(as.numeric(input$score_mag), as.numeric(input$score_mag)), y= c(0, 100000), name = "Lower", mode = "lines", line=list(
-        dash = "dashdot", color = "gray",alpha=0.5)) %>%
-      add_trace(x = c(as.numeric(max(abs_scores())),as.numeric(max(abs_scores()))), y= c(0, 100000), name = "Upper", mode = "lines", line=list(
-        dash = "dashdot", color = "gray",alpha=0.5)) 
+#     p <- p %>%
+#       add_trace(x = c(as.numeric(input$score_mag), as.numeric(input$score_mag)), y= c(0, 300), name = "Minimum", mode = "lines", line=list(
+#         dash = "dashdot", color = "gray",alpha=0.5))
+#       add_trace(x = c(as.numeric(max(abs_scores())),as.numeric(max(abs_scores()))), y= c(0, 100000), name = "Upper", mode = "lines", line=list(
+#         dash = "dashdot", color = "gray",alpha=0.5)) 
     layout(p, hovermode="closest",showlegend=FALSE)
 
 # p <- plot_ly(df, x=score, type="histogram",autobinx=F,opacity=0.4,name="",
