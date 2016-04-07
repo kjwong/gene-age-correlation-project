@@ -10,6 +10,7 @@ library(d3heatmap)
 library(ggplot2)
 library(org.Hs.eg.db)
 library(topGO)
+library(plotly)
 options(shiny.maxRequestSize = 1000*1024^2) # for large inputs
 #numcores <- detectCores() - 1 # Find no. cores
 
@@ -119,14 +120,29 @@ shinyServer(function(input, output) {
   })
   
   # plot 1
-  output$plot <- renderPlot({
+  output$plot <- renderPlotly({
     .e <- environment()
     gsm_age <- gsm_age()
-    p <- ggplot(data=gsm_age, aes(gsm_age[,1]), environment = .e) + 
-      geom_histogram(binwidth=2,fill=I("gray23"),col=I("gray")) + 
-      labs(x="age",y="# of GSM samples")
-    p + geom_vline(xintercept=as.numeric(lwr()), colour="red",size=0.6, linetype="twodash") +
-      geom_vline(xintercept=as.numeric(upr()), colour="red",size=0.6, linetype="twodash") 
+    colnames(gsm_age) <- c("age")
+#     p <- plot_ly(gsm_age,x=age,type="histogram",autobinx=F,opacity=0.4, name="",
+#              fill="blue",xbins=list(start=min(gsm_age[,1]),end=max(gsm_age[,1]),size=2))
+    p <- ggplot(data=gsm_age,aes(x=age),environment=.e) +
+      geom_histogram(binwidth=2,fill="blue",col="gray",alpha=0.4) +
+      labs(x="age",y="") +
+      theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=9))
+    p <- ggplotly(p)
+    
+    p <- p %>%
+      add_trace(x = c(lwr(), lwr()), y= c(0, 100000), mode = "lines", name = "Lower", text = "", line=list(
+      dash = "dashdot", color = "gray",alpha=0.5)) %>%
+      add_trace(x = c(upr(),upr()), y= c(0, 100000), mode = "lines", name = "Upper", text="",line=list(
+      dash = "dashdot", color = "gray",alpha=0.5)) 
+    layout(p, hovermode = "closest", showlegend=FALSE)
+#     layout(p, xaxis = list(title = "age", 
+#                        autotick = F, dtick = 10),yaxis=list(title="# of samples"),hovermode="closest",showlegend=FALSE)
+#    
+    
   })
 
   
@@ -257,22 +273,41 @@ shinyServer(function(input, output) {
 
 
   # histogram plot2 of magnitudes
-  output$plot2 <- renderPlot({
+  output$plot2 <- renderPlotly({
     .e <- environment()
     df <- cbind(data.frame(all_predg()), t(abs_scores()))
-    
-    ggplot(data=df, aes(x=df[,2]), environment = .e) + 
-      geom_histogram(binwidth=.05,fill=I("gray23"),col=I("gray")) +
-      labs(x="abs(score)",y="# of genes") +
-      geom_vline(xintercept=as.numeric(input$score_mag), colour="red",size=0.6, linetype="twodash") +
-      geom_vline(xintercept=as.numeric(max(abs_scores())), colour="red",size=0.6, linetype="twodash") 
+    score <- df[,2]
+    p <- ggplot(data=df, aes(x=score), environment = .e) + 
+      geom_histogram(binwidth=.05,fill="red",col="gray",alpha=0.4) +
+      labs(x="score magnitude", y="") +
+      theme(axis.text=element_text(size=7),
+            axis.title=element_text(size=9))
+
+    p <- ggplotly(p)
+    p <- p %>%
+      add_trace(x = c(as.numeric(input$score_mag), as.numeric(input$score_mag)), y= c(0, 100000), name = "Lower", mode = "lines", line=list(
+        dash = "dashdot", color = "gray",alpha=0.5)) %>%
+      add_trace(x = c(as.numeric(max(abs_scores())),as.numeric(max(abs_scores()))), y= c(0, 100000), name = "Upper", mode = "lines", line=list(
+        dash = "dashdot", color = "gray",alpha=0.5)) 
+    layout(p, hovermode="closest",showlegend=FALSE)
+
+# p <- plot_ly(df, x=score, type="histogram",autobinx=F,opacity=0.4,name="",
+#              fill="red",xbins=list(start=min(df[,2]),end=max(df[,2]),size=.05))
+# p <-  p %>%
+#   add_trace(x = c(as.numeric(input$score_mag), as.numeric(input$score_mag)), y= c(0, 100), mode = "lines", name = "Lower", text = "", line=list(
+#     dash = "dashdot", color = "gray",alpha=0.5)) %>%
+#   add_trace(x = c(as.numeric(max(abs_scores())),as.numeric(max(abs_scores()))), y= c(0, 100), mode = "lines", name = "Upper", text="",line=list(
+#     dash = "dashdot", color = "gray",alpha=0.5)) 
+# layout(p, xaxis = list(title = "score magnitude", 
+#                        autotick = T),yaxis=list(title="# of samples"),hovermode="closest",showlegend=FALSE)
+
   })
 
   # slider for plot2
   output$slider_plot2 <- renderUI({
     lwrbound = signif(min(abs_scores()),3)
     uprbound = signif(max(abs_scores()),3)
-    sliderInput("score_mag", label = h6("abs(score):"), ticks=FALSE,min = lwrbound, 
+    sliderInput("score_mag", label = h6("Choose a minimum score:"), ticks=FALSE,min = lwrbound, 
                 max = uprbound,value= (uprbound - lwrbound) / 2 + lwrbound)
   })
 

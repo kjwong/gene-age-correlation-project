@@ -6,10 +6,11 @@ library(shiny)
 library(DT)
 library(d3heatmap)
 library(shinyBS)
+library(plotly)
 
 shinyUI(fluidPage(
   
-  h1("Web interface for gene-age correlation in GEO datasets"),
+  h1("Web interface for gene-age correlation in humans"),
   hr(),
   h4("This app lets you visualize and analyze the genes most correlated with age in a specified age range."),
   h4("Upload (1) expression data and (2) a table of the samples and their respective ages, and hit run!"),
@@ -61,7 +62,7 @@ shinyUI(fluidPage(
       conditionalPanel(
         condition = "input.run_samples",
         h3("GSM sample count by age:"),
-        plotOutput("plot"),
+        plotlyOutput("plot"),
         fluidRow(
           column(6,
             uiOutput("slider_plot")),
@@ -82,7 +83,7 @@ shinyUI(fluidPage(
       ),
       conditionalPanel(
         condition = "input.runpcl",
-        plotOutput("plot2"),
+        plotlyOutput("plot2"),
         conditionalPanel(
           condition = "output.plot2",
           fluidRow(
