@@ -139,14 +139,14 @@ shinyUI(fluidPage(
       ),
       conditionalPanel(
         condition = "input.rungt",
-        h3("GO term analysis"),
+        h3("GO term analysis:"),
         tabsetPanel(
           id = 'goterms',
-          tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms'),
+          tabPanel('Pos. correlation',DT::dataTableOutput('pos_goterms'),
                    conditionalPanel(condition="output.pos_goterms",
                                     helpText("The classic column denotes the p-value."),
                                     downloadButton("pgo_dl","Download table"))),
-          tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'),
+          tabPanel('Neg. correlation',DT::dataTableOutput('neg_goterms'),
                    conditionalPanel(condition="output.neg_goterms",
                                     helpText("The classic column denotes the p-value."),
                                     downloadButton("ngo_dl","Download table")))  
