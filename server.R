@@ -139,9 +139,6 @@ shinyServer(function(input, output) {
       add_trace(x = c(upr(),upr()), y= c(0, 100000), mode = "lines", name = "Upper", text="",line=list(
       dash = "dashdot", color = "gray",alpha=0.5)) 
     layout(p, hovermode = "closest", showlegend=FALSE)
-#     layout(p, xaxis = list(title = "age", 
-#                        autotick = F, dtick = 10),yaxis=list(title="# of samples"),hovermode="closest",showlegend=FALSE)
-#    
     
   })
 
@@ -292,11 +289,6 @@ shinyServer(function(input, output) {
 
 # p <- plot_ly(df, x=score, type="histogram",autobinx=F,opacity=0.4,name="",
 #              fill="red",xbins=list(start=min(df[,2]),end=max(df[,2]),size=.05))
-# p <-  p %>%
-#   add_trace(x = c(as.numeric(input$score_mag), as.numeric(input$score_mag)), y= c(0, 100), mode = "lines", name = "Lower", text = "", line=list(
-#     dash = "dashdot", color = "gray",alpha=0.5)) %>%
-#   add_trace(x = c(as.numeric(max(abs_scores())),as.numeric(max(abs_scores()))), y= c(0, 100), mode = "lines", name = "Upper", text="",line=list(
-#     dash = "dashdot", color = "gray",alpha=0.5)) 
 # layout(p, xaxis = list(title = "score magnitude", 
 #                        autotick = T),yaxis=list(title="# of samples"),hovermode="closest",showlegend=FALSE)
 
@@ -478,13 +470,8 @@ shinyServer(function(input, output) {
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
       incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
       result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
-      #       incProgress(0.2, detail = "Running Kolmogorov–Smirnov test")
-      #       resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
-      # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
       incProgress(0.2, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, classic = result,
-                         #                          classicKS = resultKS, 
-                         #                    elimKS = resultKS.elim,
                          orderBy = "classic", ranksOf = "classic", topNodes = 50)
     })
     allRes
@@ -504,13 +491,8 @@ shinyServer(function(input, output) {
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
       incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
       result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
-#       incProgress(0.2, detail = "Running Kolmogorov–Smirnov test")
-#       resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
-      # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
       incProgress(0.2, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, classic = result,
-#                          classicKS = resultKS, 
-                         #                    elimKS = resultKS.elim,
                          orderBy = "classic", ranksOf = "classic", topNodes = 50)
     })
     allRes
@@ -519,32 +501,14 @@ shinyServer(function(input, output) {
   output$pos_goterms <- DT::renderDataTable({
     allRes <- pos_go()
     cap <- paste('Table 5: GO terms enriched in positively correlated genes.')
-    DT::datatable(allRes, rownames=TRUE, caption = cap
-#                   options = list(columnDefs = list(list(
-#       targets = 2,
-#       render = JS(
-#         "function(data, type, row, meta) {",
-#         "return type === 'display' && data.length > 20 ?",
-#         "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
-#         "}")
-#     )))
-    )
+    DT::datatable(allRes, rownames=TRUE, caption = cap)
   })
 
   # gene ontology of negative predictive genes
   output$neg_goterms <- DT::renderDataTable({
     allRes <- neg_go()
     cap <- paste('Table 6: GO terms enriched in negatively correlated genes.')
-    DT::datatable(allRes, rownames=TRUE, caption = cap
-#                   options = list(columnDefs = list(list(
-#       targets = 2,
-#       render = JS(
-#         "function(data, type, row, meta) {",
-#         "return type === 'display' && data.length > 20 ?",
-#         "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
-#         "}")
-#     )))
-    )
+    DT::datatable(allRes, rownames=TRUE, caption = cap)
   })
 
   output$ptable_dl <- downloadHandler(
