@@ -215,7 +215,7 @@ shinyServer(function(input, output) {
   boot_rho <- reactive({
     clust <- makeCluster(10) # Initiate cluster
     arng <- arng()
-    nboot <- 2
+    nboot <- 10
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
