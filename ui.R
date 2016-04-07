@@ -112,21 +112,21 @@ shinyUI(fluidPage(
         h4("Gene lists"),
         tabsetPanel(
           id = 'dataset',
-          tabPanel('Positively correlated', DT::dataTableOutput('ptable'),
+          tabPanel('Pos. correlation', DT::dataTableOutput('ptable'),
                    conditionalPanel(condition="output.ptable",downloadButton("ptable_dl","Download table"))),
-          tabPanel('Negatively correlated', DT::dataTableOutput('ntable'),
+          tabPanel('Neg. correlation', DT::dataTableOutput('ntable'),
                    conditionalPanel(condition="output.ntable",downloadButton("ntable_dl","Download table"))),
-          tabPanel('Positively correlated (exp. values)', DT::dataTableOutput('ppcl'),
+          tabPanel('Pos. correlation (exp. values)', DT::dataTableOutput('ppcl'),
                    conditionalPanel(condition="output.ppcl",downloadButton("ppcl_dl","Download table"))),
-          tabPanel('Negatively correlated (exp. values)', DT::dataTableOutput('npcl'),
+          tabPanel('Neg. correlation (exp. values)', DT::dataTableOutput('npcl'),
                    conditionalPanel(condition="output.npcl",downloadButton("npcl_dl","Download table")))
         ),
         hr(),
         h4("Expression value heatmap and clustering"),
         tabsetPanel(
           id = 'heatmap',
-          tabPanel('Positively correlated', d3heatmapOutput("posheat")),
-          tabPanel('Negatively correlated', d3heatmapOutput("negheat"))
+          tabPanel('Pos. correlation', d3heatmapOutput("posheat")),
+          tabPanel('Neg. correlation', d3heatmapOutput("negheat"))
         )
       ),
       conditionalPanel(
