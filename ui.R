@@ -1,3 +1,7 @@
+## Name: Kenny Wong
+## Collaborators: Arjun Krishnan
+## Murphy Lab
+
 library(shiny)
 library(DT)
 library(d3heatmap)
@@ -16,13 +20,13 @@ shinyUI(fluidPage(
       h4("Select a GSM sample expression file."),
       bsTooltip('file1',"Row names: Entrez Gene ID, Column names: GSM accession number",
                 placement="right",trigger="hover"),
-#       helpText("Hover to see format."),
+
       fileInput('file1',label=NULL,accept = c('.pcl')),
       radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, '\t'),
       checkboxInput('header1', 'Header', TRUE),
       tags$hr(),
       h4("Select a file with GSM samples and their ages."),
-#       helpText("Hover to see format."),
+
       fileInput('file2',label=NULL,accept = c(
         'text/csv',
         'text/comma-separated-values',
@@ -105,30 +109,31 @@ shinyUI(fluidPage(
       ),
       conditionalPanel(
         condition = "input.tablepcl",
+        h4("Gene lists"),
         tabsetPanel(
           id = 'dataset',
-          tabPanel('Pos. scores', DT::dataTableOutput('ptable'),
+          tabPanel('Positively correlated', DT::dataTableOutput('ptable'),
                    conditionalPanel(condition="output.ptable",downloadButton("ptable_dl","Download table"))),
-          tabPanel('Neg. scores', DT::dataTableOutput('ntable'),
+          tabPanel('Negatively correlated', DT::dataTableOutput('ntable'),
                    conditionalPanel(condition="output.ntable",downloadButton("ntable_dl","Download table"))),
-          tabPanel('Pos. exp. values by age', DT::dataTableOutput('ppcl'),
+          tabPanel('Positively correlated (exp. values)', DT::dataTableOutput('ppcl'),
                    conditionalPanel(condition="output.ppcl",downloadButton("ppcl_dl","Download table"))),
-          tabPanel('Neg. exp. values by age', DT::dataTableOutput('npcl'),
+          tabPanel('Negatively correlated (exp. values)', DT::dataTableOutput('npcl'),
                    conditionalPanel(condition="output.npcl",downloadButton("npcl_dl","Download table")))
         ),
         hr(),
+        h4("Expression value heatmap and clustering"),
         tabsetPanel(
           id = 'heatmap',
-          tabPanel('Pos. gene by age heatmap', d3heatmapOutput("posheat")),
-          tabPanel('Neg. gene by age heatmap', d3heatmapOutput("negheat"))
+          tabPanel('Positively correlated', d3heatmapOutput("posheat")),
+          tabPanel('Negatively correlated', d3heatmapOutput("negheat"))
         )
       ),
       conditionalPanel(
         condition = "output.ptable",
-            actionButton("rungt", "Run GO term analysis"),
-            helpText("See the most enriched GO terms in your selected genes."),
-          
-        
+        selectInput(inputId = "stat", label = "Choose a statistical test (for p-value)", choices = c("fisher", "ks", "t")),
+        actionButton("rungt", "Run GO term analysis"),
+        helpText("See the most enriched GO terms in your selected genes."),
         hr()
       ),
       conditionalPanel(
@@ -137,9 +142,13 @@ shinyUI(fluidPage(
         tabsetPanel(
           id = 'goterms',
           tabPanel('Pos. gene GO terms',DT::dataTableOutput('pos_goterms'),
-                   conditionalPanel(condition="output.pos_goterms",downloadButton("pgo_dl","Download table"))),
+                   conditionalPanel(condition="output.pos_goterms",
+                                    helpText("The classic column denotes the p-value."),
+                                    downloadButton("pgo_dl","Download table"))),
           tabPanel('Neg. gene GO terms',DT::dataTableOutput('neg_goterms'),
-                   conditionalPanel(condition="output.neg_goterms",downloadButton("ngo_dl","Download table")))  
+                   conditionalPanel(condition="output.neg_goterms",
+                                    helpText("The classic column denotes the p-value."),
+                                    downloadButton("ngo_dl","Download table")))  
         ),
         hr()
       )

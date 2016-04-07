@@ -1,3 +1,7 @@
+## Name: Kenny Wong
+## Collaborators: Arjun Krishnan
+## Murphy Lab
+
 library("data.table")
 library(parallel)
 library(shiny)
@@ -6,12 +10,12 @@ library(d3heatmap)
 library(ggplot2)
 library(org.Hs.eg.db)
 library(topGO)
-options(shiny.maxRequestSize = 1000*1024^2)
+options(shiny.maxRequestSize = 1000*1024^2) # for large inputs
 #numcores <- detectCores() - 1 # Find no. cores
 
 shinyServer(function(input, output) {
   
-  # INPUT
+  # INPUT AND FILTERS
 
   # reading the entire pcl 
   gsm_pcl <- reactive({
@@ -126,7 +130,7 @@ shinyServer(function(input, output) {
   
   
 #
-#
+# running gene-age correlation
 #
   
 
@@ -267,7 +271,7 @@ shinyServer(function(input, output) {
     lwrbound = signif(min(abs_scores()),3)
     uprbound = signif(max(abs_scores()),3)
     sliderInput("score_mag", label = h6("abs(score):"), ticks=FALSE,min = lwrbound, 
-                max = uprbound,value=lwrbound)
+                max = uprbound,value= (uprbound - lwrbound) / 2 + lwrbound)
   })
 
   # caption for plot2
@@ -277,7 +281,7 @@ shinyServer(function(input, output) {
 
 
 #
-#
+# predictive genes
 #
 
 
@@ -367,34 +371,33 @@ shinyServer(function(input, output) {
 
 
 #
+# table outputs
 #
-#
 
 
 
 
-  #outputs
   output$ptable <- DT::renderDataTable({
     pos <- pos_pcl()
-    cap <- paste('Table 1: Genes with the most positive Spearman correlation scores for ages ', lwr(), ' to ', upr())
+    cap <- paste0('Table 1: Genes with the most positive correlation with age between ages ', lwr(), ' to ', upr(),'.')
     DT::datatable(pos[,1:3], rownames=FALSE, caption = cap)
   })
 
   output$ntable <- DT::renderDataTable({
     neg <- neg_pcl()
-    cap <- paste('Table 2: Genes with the most negative Spearman correlation scores for ages ', lwr(), ' to ', upr())
+    cap <- paste0('Table 2: Genes with the most negative correlation with age between ages ', lwr(), ' to ', upr(),'.')
     DT::datatable(neg[,1:3], rownames=FALSE, caption = cap)
   })
 
   output$ppcl <- DT::renderDataTable({
     pos <- pos_pcl()
-    cap <- paste('Table 3: Expression values of genes with the most positive Spearman correlation scores for ages ', lwr(), ' to ', upr())
+    cap <- paste0('Table 3: Expression values of genes with the most positive Spearman correlation scores for ages ', lwr(), ' to ', upr(),'.')
     DT::datatable(pos, rownames=FALSE, caption = cap)
   })
 
   output$npcl <- DT::renderDataTable({
     neg <- neg_pcl()
-    cap <- paste('Table 4: Expression values of genes with the most negative Spearman correlation scores for ages ', lwr(), ' to ', upr())
+    cap <- paste0('Table 4: Expression values of genes with the most negative Spearman correlation scores for ages ', lwr(), ' to ', upr(),'.')
     DT::datatable(neg, rownames=FALSE, caption = cap)
   })
 
@@ -408,7 +411,7 @@ shinyServer(function(input, output) {
     pos_p[indx] <- lapply(pos_p[indx], function(x) as.numeric(as.character(x)))
     length <- 50
     if (dim(pos_p)[1] < 50) length <- dim(pos_p)[1] 
-    d3heatmap(pos_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7)
+    d3heatmap(pos_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7,colors="Spectral")
   })
 
   output$negheat <- renderD3heatmap({
@@ -421,87 +424,91 @@ shinyServer(function(input, output) {
     neg_p[indx] <- lapply(neg_p[indx], function(x) as.numeric(as.character(x)))
     length <- 50
     if (dim(neg_p)[1] < 50) length <- dim(neg_p)[1] 
-    d3heatmap(neg_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7)
+    d3heatmap(neg_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7,colors="Spectral")
   })
 
   # gene ontology of positive predictive genes
-  pos_go <- reactive({
+  pos_go <- eventReactive(input$rungt,{
     all_predg <- select_pos_predg()
     withProgress(message = "Generating positive GO terms\n", detail = "Compiling tables", value = 0.1, {
       gsm_pcl <- gsm_pcl()
-      incProgress(0.1, detail = "Compiling tables")
+      incProgress(0.05, detail = "Compiling tables")
       ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
-      incProgress(0.2, detail = "Building GO DAG topology and annotations")
+      incProgress(0.1, detail = "Building GO DAG topology and annotations")
       geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
       names(geneList) <- rownames(gsm_pcl)
       selector <- function(x) {return (x==0)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-      incProgress(0.2, detail = "Running Fisher test")
-      resultFisher <- runTest(sampleGOdata, algorithm = "classic", statistic = "fisher")
-      incProgress(0.2, detail = "Running Kolmogorov–Smirnov test")
-      resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
+      incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
+      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
+      #       incProgress(0.2, detail = "Running Kolmogorov–Smirnov test")
+      #       resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
       # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
       incProgress(0.2, detail = "Aggregating results")
-      allRes <- GenTable(sampleGOdata, classicFisher = resultFisher,
-                         classicKS = resultKS, 
+      allRes <- GenTable(sampleGOdata, classic = result,
+                         #                          classicKS = resultKS, 
                          #                    elimKS = resultKS.elim,
-                         orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
+                         orderBy = "classic", ranksOf = "classic", topNodes = 50)
     })
     allRes
   })
 
-  neg_go <- reactive({
+  neg_go <- eventReactive(input$rungt,{
     all_predg <- select_neg_predg()
-    withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0.1, {
+    withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0.05, {
       gsm_pcl <- gsm_pcl()
-      incProgress(0.1, detail = "Compiling tables")
+      incProgress(0.05, detail = "Compiling tables")
       ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
-      incProgress(0.2, detail = "Building GO DAG topology and annotations")
+      incProgress(0.1, detail = "Building GO DAG topology and annotations")
       geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
       names(geneList) <- rownames(gsm_pcl)
       selector <- function(x) {return (x==0)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-      incProgress(0.2, detail = "Running Fisher test")
-      resultFisher <- runTest(sampleGOdata, algorithm = "classic", statistic = "fisher")
-      incProgress(0.2, detail = "Running Kolmogorov–Smirnov test")
-      resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
+      incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
+      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
+#       incProgress(0.2, detail = "Running Kolmogorov–Smirnov test")
+#       resultKS <- runTest(sampleGOdata, algorithm = "classic", statistic = "ks")
       # resultKS.elim <- runTest(sampleGOdata, algorithm = "elim", statistic = "ks")
       incProgress(0.2, detail = "Aggregating results")
-      allRes <- GenTable(sampleGOdata, classicFisher = resultFisher,
-                         classicKS = resultKS, 
+      allRes <- GenTable(sampleGOdata, classic = result,
+#                          classicKS = resultKS, 
                          #                    elimKS = resultKS.elim,
-                         orderBy = "classicKS", ranksOf = "classicFisher", topNodes = 50)
+                         orderBy = "classic", ranksOf = "classic", topNodes = 50)
     })
     allRes
   })
 
   output$pos_goterms <- DT::renderDataTable({
     allRes <- pos_go()
-    cap <- paste('Table 5: Top 50 GO terms enriched in positively correlated genes')
-    DT::datatable(allRes, rownames=TRUE, caption = cap,options = list(columnDefs = list(list(
-      targets = 2,
-      render = JS(
-        "function(data, type, row, meta) {",
-        "return type === 'display' && data.length > 20 ?",
-        "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
-        "}")
-    ))))
+    cap <- paste('Table 5: GO terms enriched in positively correlated genes.')
+    DT::datatable(allRes, rownames=TRUE, caption = cap
+#                   options = list(columnDefs = list(list(
+#       targets = 2,
+#       render = JS(
+#         "function(data, type, row, meta) {",
+#         "return type === 'display' && data.length > 20 ?",
+#         "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+#         "}")
+#     )))
+    )
   })
 
   # gene ontology of negative predictive genes
   output$neg_goterms <- DT::renderDataTable({
     allRes <- neg_go()
-    cap <- paste('Table 6: Top 50 GO terms enriched in negatively correlated genes')
-    DT::datatable(allRes, rownames=TRUE, caption = cap,options = list(columnDefs = list(list(
-      targets = 2,
-      render = JS(
-        "function(data, type, row, meta) {",
-        "return type === 'display' && data.length > 20 ?",
-        "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
-        "}")
-    ))))
+    cap <- paste('Table 6: GO terms enriched in negatively correlated genes.')
+    DT::datatable(allRes, rownames=TRUE, caption = cap
+#                   options = list(columnDefs = list(list(
+#       targets = 2,
+#       render = JS(
+#         "function(data, type, row, meta) {",
+#         "return type === 'display' && data.length > 20 ?",
+#         "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;",
+#         "}")
+#     )))
+    )
   })
 
   output$ptable_dl <- downloadHandler(
