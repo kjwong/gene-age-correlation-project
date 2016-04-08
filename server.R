@@ -2,6 +2,16 @@
 ## Collaborators: Arjun Krishnan
 ## Murphy Lab
 
+if (!require("data.table")) install.packages('data.table')
+if (!require("parallel")) install.packages('parallel')
+if (!require("shiny")) install.packages('shiny')
+if (!require("DT")) install.packages('DT')
+if (!require("d3heatmap")) install.packages('d3heatmap')
+if (!require("ggplot2")) install.packages('ggplot2')
+if (!require("org.Hs.eg.db")) install.packages('org.Hs.eg.db')
+if (!require("topGO")) install.packages('topGO')
+if (!require("plotly")) install.packages('plotly')
+
 library("data.table")
 library(parallel)
 library(shiny)

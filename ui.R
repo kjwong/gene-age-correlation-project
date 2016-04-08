@@ -2,6 +2,12 @@
 ## Collaborators: Arjun Krishnan
 ## Murphy Lab
 
+if (!require("shiny")) install.packages('shiny')
+if (!require("DT")) install.packages('DT')
+if (!require("d3heatmap")) install.packages('d3heatmap')
+if (!require("plotly")) install.packages('plotly')
+if (!require("shinyBS")) install.packages('shinyBS')
+
 library(shiny)
 library(DT)
 library(d3heatmap)
