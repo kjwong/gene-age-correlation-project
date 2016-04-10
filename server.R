@@ -111,7 +111,17 @@ shinyServer(function(input, output) {
   # age range
   lwr <- reactive({input$age_range[1]})
   upr <- reactive({input$age_range[2]})
-  arng <- reactive({lwr():upr()})
+  arng <- reactive({
+    arng <- lwr():upr()
+    count = 1
+    for (i in lwr():upr()) {
+      if (!(i %in% st_gsm_age()[,1])) {
+        arng <- arng[-count]
+      }
+      else count = count + 1
+    }
+    arng
+  })
   
   # plot 1 caption
   output$plot_caption <- renderText({
@@ -192,7 +202,7 @@ shinyServer(function(input, output) {
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
     arng <- arng()
-    st_age_pcl <- array(NaN, c(nrow(st_gsm_pcl()), length(lwr():upr())))
+    st_age_pcl <- array(NaN, c(nrow(st_gsm_pcl()), length(arng)))
     for(j in 1:length(arng)) {
       age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])]
       if(length(age_gsm)==1) {
