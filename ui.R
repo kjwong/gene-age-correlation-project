@@ -24,15 +24,15 @@ shinyUI(fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-      h4("Select a GSM sample expression file."),
-      bsTooltip('file1',"Row names: Entrez Gene ID, Column names: GSM accession number",
+      h4("Select a sample expression file."),
+      bsTooltip('file1',"Row names: Entrez Gene ID, Column names: Sample ID",
                 placement="right",trigger="hover"),
 
       fileInput('file1',label=NULL,accept = c('.pcl')),
       radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, '\t'),
       checkboxInput('header1', 'Header', TRUE),
       tags$hr(),
-      h4("Select a file with GSM samples and their ages."),
+      h4("Select a file with samples and their ages."),
 
       fileInput('file2',label=NULL,accept = c(
         'text/csv',
@@ -42,7 +42,7 @@ shinyUI(fluidPage(
         '.csv',
         '.tsv'
       )),
-      bsTooltip('file2',"Row names: GSM accession number, Column names: age (required), other (optional)",
+      bsTooltip('file2',"Row names: Sample ID, Column names: age (required), other (optional)",
                 placement="right",
                 trigger="hover"),
       radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, ','),
@@ -67,7 +67,7 @@ shinyUI(fluidPage(
       uiOutput("nosamp"),
       conditionalPanel(
         condition = "input.run_samples",
-        h3("GSM sample count by age:"),
+        h3("Sample count by age:"),
         plotlyOutput("plot"),
         fluidRow(
           column(6,
