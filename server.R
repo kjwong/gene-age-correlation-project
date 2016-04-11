@@ -146,8 +146,6 @@ shinyServer(function(input, output) {
     .e <- environment()
     gsm_age <- gsm_age()
     colnames(gsm_age) <- c("age")
-#     p <- plot_ly(gsm_age,x=age,type="histogram",autobinx=F,opacity=0.4, name="",
-#              fill="blue",xbins=list(start=min(gsm_age[,1]),end=max(gsm_age[,1]),size=2))
     p <- ggplot(data=gsm_age,aes(x=age),environment=.e) +
       geom_histogram(binwidth=2,fill="blue",col="gray",alpha=0.4) +
       labs(x="age",y="") +
@@ -302,18 +300,7 @@ shinyServer(function(input, output) {
             axis.title=element_text(size=9))
 
     p <- ggplotly(p)
-#     p <- p %>%
-#       add_trace(x = c(as.numeric(input$score_mag), as.numeric(input$score_mag)), y= c(0, 300), name = "Minimum", mode = "lines", line=list(
-#         dash = "dashdot", color = "gray",alpha=0.5))
-#       add_trace(x = c(as.numeric(max(abs_scores())),as.numeric(max(abs_scores()))), y= c(0, 100000), name = "Upper", mode = "lines", line=list(
-#         dash = "dashdot", color = "gray",alpha=0.5)) 
     layout(p, hovermode="closest",showlegend=FALSE)
-
-# p <- plot_ly(df, x=score, type="histogram",autobinx=F,opacity=0.4,name="",
-#              fill="red",xbins=list(start=min(df[,2]),end=max(df[,2]),size=.05))
-# layout(p, xaxis = list(title = "score magnitude", 
-#                        autotick = T),yaxis=list(title="# of samples"),hovermode="closest",showlegend=FALSE)
-
   })
 
   # slider for plot2
