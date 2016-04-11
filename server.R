@@ -11,6 +11,7 @@ if (!require("ggplot2")) install.packages('ggplot2')
 if (!require("org.Hs.eg.db")) install.packages('org.Hs.eg.db')
 if (!require("topGO")) install.packages('topGO')
 if (!require("plotly")) install.packages('plotly')
+if (!require("stats")) install.packages('stats')
 
 library("data.table")
 library(parallel)
@@ -21,6 +22,7 @@ library(ggplot2)
 library(org.Hs.eg.db)
 library(topGO)
 library(plotly)
+library(stats)
 options(shiny.maxRequestSize = 1000*1024^2) # for large inputs
 #numcores <- detectCores() - 1 # Find no. cores
 
