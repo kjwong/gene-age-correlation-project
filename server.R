@@ -474,14 +474,17 @@ shinyServer(function(input, output) {
       incProgress(0.1, detail = "Building GO DAG topology and annotations")
       geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
       names(geneList) <- rownames(gsm_pcl)
-      selector <- function(x) {return (x==0)}
+      selector <- function(x) {return (x==1)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
       incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
       result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
       incProgress(0.2, detail = "Aggregating results")
-      allRes <- GenTable(sampleGOdata, classic = result,
-                         orderBy = "classic", ranksOf = "classic", pvalCutOff=0.05)
+      allRes <- GenTable(sampleGOdata, pValue = result,
+                         orderBy = "pValue",topNodes=1000)
+      allRes <- allRes[allRes$pValue < 0.05,]
+      allRes[,"Fold Enrichment"] <- round(allRes[,"Significant"] / allRes[,"Expected"],1)
+      allRes <- allRes[c("GO.ID","Term","Annotated","Significant","Expected","Fold Enrichment","pValue")]
     })
     allRes
   })
@@ -495,14 +498,17 @@ shinyServer(function(input, output) {
       incProgress(0.1, detail = "Building GO DAG topology and annotations")
       geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
       names(geneList) <- rownames(gsm_pcl)
-      selector <- function(x) {return (x==0)}
+      selector <- function(x) {return (x==1)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
       incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
       result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
       incProgress(0.2, detail = "Aggregating results")
-      allRes <- GenTable(sampleGOdata, classic = result,
-                         orderBy = "classic", ranksOf = "classic", pvalCutOff=0.05)
+      allRes <- GenTable(sampleGOdata, pValue = result,
+                         orderBy = "pValue",topNodes=1000)
+      allRes <- allRes[allRes$pValue < 0.05,]
+      allRes[,"Fold Enrichment"] <- round(allRes[,"Significant"] / allRes[,"Expected"],1)
+      allRes <- allRes[c("GO.ID","Term","Annotated","Significant","Expected","Fold Enrichment","pValue")]
     })
     allRes
   })

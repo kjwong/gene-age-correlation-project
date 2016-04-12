@@ -151,11 +151,9 @@ shinyUI(fluidPage(
           id = 'goterms',
           tabPanel('Pos. correlation',DT::dataTableOutput('pos_goterms'),
                    conditionalPanel(condition="output.pos_goterms",
-                                    helpText("The 'classic' column denotes the p-value."),
                                     downloadButton("pgo_dl","Download table"))),
           tabPanel('Neg. correlation',DT::dataTableOutput('neg_goterms'),
                    conditionalPanel(condition="output.neg_goterms",
-                                    helpText("The 'classic' column denotes the p-value."),
                                     downloadButton("ngo_dl","Download table")))  
         ),
         hr()
