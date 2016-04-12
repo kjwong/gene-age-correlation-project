@@ -481,7 +481,7 @@ shinyServer(function(input, output) {
       result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
       incProgress(0.2, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, classic = result,
-                         orderBy = "classic", ranksOf = "classic", topNodes = 50)
+                         orderBy = "classic", ranksOf = "classic", pvalCutOff=0.05)
     })
     allRes
   })
@@ -502,7 +502,7 @@ shinyServer(function(input, output) {
       result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
       incProgress(0.2, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, classic = result,
-                         orderBy = "classic", ranksOf = "classic", topNodes = 50)
+                         orderBy = "classic", ranksOf = "classic", pvalCutOff=0.05)
     })
     allRes
   })
