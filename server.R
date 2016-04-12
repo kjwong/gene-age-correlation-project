@@ -521,32 +521,32 @@ shinyServer(function(input, output) {
   })
 
   output$ptable_dl <- downloadHandler(
-    filename = function(){"pos_genes.csv"},
+    filename = function(){paste(lwr(),"-",upr(),"pos_genes.csv")},
     content = function(file){write.csv(pos_pcl()[,1:3],file)}
   )
 
   output$ntable_dl <- downloadHandler(
-    filename = function(){"neg_genes.csv"},
+    filename = function(){paste(lwr(),"-",upr(),"neg_genes.csv")},
     content = function(file){write.csv(neg_pcl()[,1:3],file)}
   )
 
   output$ppcl_dl <- downloadHandler(
-    filename = function(){"pos_genes_scores.csv"},
+    filename = function(){paste(lwr(),"-",upr(),"pos_scores.csv")},
     content = function(file){write.csv(pos_pcl(),file)}
   )
 
   output$npcl_dl <- downloadHandler(
-    filename = function(){"neg_genes_scores.csv"},
+    filename = function(){paste(lwr(),"-",upr(),"neg_scores.csv")},
     content = function(file){write.csv(neg_pcl(),file)}
   )
 
   output$pgo_dl <- downloadHandler(
-    filename = function(){"pos_genes_goterms.csv"},
+    filename = function(){paste(lwr(),"-",upr(),"pos_goterms.csv")},
     content = function(file){write.csv(pos_go(),file)}
   )
 
   output$ngo_dl <- downloadHandler(
-    filename = function(){"neg_genes_goterms.csv"},
+    filename = function(){paste(lwr(),"-",upr(),"neg_goterms.csv")},
     content = function(file){write.csv(neg_go(),file)}
   )
 })
