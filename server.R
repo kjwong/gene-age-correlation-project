@@ -32,7 +32,7 @@ shinyServer(function(input, output) {
 
   # reading the entire pcl 
   gsm_pcl <- reactive({
-    withProgress(message = "Reading expression data",value=0.1,{
+    withProgress(message = "Loading expression data",value=0.1,{
       inFile <- input$file1
       if (is.null(inFile))
         return(NULL)   
@@ -98,8 +98,7 @@ shinyServer(function(input, output) {
     
     if (length(st_samples) == 0) return(data.frame())
     gsm_age <- data.frame(gsm_input["age"])
-    gsm_age <- data.frame(gsm_age[which(rownames(gsm_age) %in% st_samples),],rownames=FALSE)    
-    
+    gsm_age <- data.frame(gsm_age[which(rownames(gsm_age) %in% st_samples),],rownames=FALSE)
     rownames(gsm_age) <- intersect(rownames(gsm_input),st_samples)
     gsm_age
   })
@@ -110,9 +109,9 @@ shinyServer(function(input, output) {
     actionButton("upload2", "Read in file")
   })
   
-  # age range
-  lwr <- reactive({input$age_range[1]})
-  upr <- reactive({input$age_range[2]})
+  # sample age range
+  lwr <- reactive({min(gsm_age()[,1])})
+  upr <- reactive({max(gsm_age()[,1])})
   arng <- reactive({
     arng <- lwr():upr()
     count = 1
@@ -124,20 +123,69 @@ shinyServer(function(input, output) {
     }
     arng
   })
+  # input age range
+  inlwr <- reactive({input$age_range[1]})
+  inupr <- reactive({input$age_range[2]})
+  inarng <- reactive({
+    arng <- inlwr():inupr()
+    count = 1
+    for (i in inlwr():inupr()) {
+      if (!(i %in% st_gsm_age()[,1])) {
+        arng <- arng[-count]
+      }
+      else count = count + 1
+    }
+    arng
+  })
+  # pos heat map age range
+  heatposlwr <- reactive({input$heatposage[1]})
+  heatposupr <- reactive({input$heatposage[2]})
+  heatposarng <- reactive({
+    arng <- heatposlwr():heatposupr()
+    count = 1
+    for (i in heatposlwr():heatposupr()) {
+      if (!(i %in% st_gsm_age()[,1])) {
+        arng <- arng[-count]
+      }
+      else count = count + 1
+    }
+    arng
+  })
   
+  # neg heat map age range
+  heatneglwr <- reactive({input$heatnegage[1]})
+  heatnegupr <- reactive({input$heatnegage[2]})
+  heatnegarng <- reactive({
+    arng <- heatneglwr():heatnegupr()
+    count = 1
+    for (i in heatneglwr():heatnegupr()) {
+      if (!(i %in% st_gsm_age()[,1])) {
+        arng <- arng[-count]
+      }
+      else count = count + 1
+    }
+    arng
+  })
+
   # plot 1 caption
-  output$plot_caption <- renderText({
+  plotcap <- reactive({
     gsm_age <- gsm_age()
-    paste("# of samples selected:\n",dim(gsm_age[which((gsm_age[,1]>=lwr()) & (gsm_age[,1]<=upr())),])[1])
+    paste("# of samples selected:\n",dim(gsm_age[which((gsm_age[,1]>=inlwr()) & (gsm_age[,1]<=inupr())),])[1])
+  })
+  output$plot_caption <- renderUI({
+    h6(plotcap())
   })
   
   # plot 1 slider
   output$slider_plot <- renderUI({
     gsm_age <- gsm_age()
     quad <- (max(gsm_age[,1]) - min(gsm_age[,1])) / 4
-    sliderInput("age_range", label = h6("Choose an age range:"), min = min(gsm_age[,1]), 
-                max = max(gsm_age[,1]), 
-                value = c(min(gsm_age[,1]) + quad, max(gsm_age[,1] - 2 * quad)))
+    if (round(min(gsm_age[,1]) + quad,-1) >= min(gsm_age[,1])) min <- round(min(gsm_age[,1]) + quad,-1)
+    else min <- min(gsm_age[,1]) + quad
+    if (round(max(gsm_age[,1] - 2 * quad),-1) <= max(gsm_age[,1])) max <- round(max(gsm_age[,1] - 2 * quad),-1)
+    else max <- max(gsm_age[,1] - 2 * quad)
+    sliderInput("age_range", label = "Choose an age range:", min = min(gsm_age[,1]), 
+                max = max(gsm_age[,1]), value = c(min,max))
                 
   })
   
@@ -154,9 +202,9 @@ shinyServer(function(input, output) {
     p <- ggplotly(p)
     
     p <- p %>%
-      add_trace(x = c(lwr(), lwr()), y= c(0, 100000), mode = "lines", name = "Lower", text = "", line=list(
+      add_trace(x = c(inlwr(), inlwr()), y= c(0, 100000), mode = "lines", name = "Lower", text = "", line=list(
       dash = "dashdot", color = "gray",alpha=0.5)) %>%
-      add_trace(x = c(upr(),upr()), y= c(0, 100000), mode = "lines", name = "Upper", text="",line=list(
+      add_trace(x = c(inupr(),inupr()), y= c(0, 100000), mode = "lines", name = "Upper", text="",line=list(
       dash = "dashdot", color = "gray",alpha=0.5)) 
     layout(p, hovermode = "closest", showlegend=FALSE)
     
@@ -198,10 +246,9 @@ shinyServer(function(input, output) {
   })
 
   # creating pcl of genes per age with median of gene-expression values per gene
-  st_age_pcl <- reactive({
+  st_age_pcl <- function(arng){
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
-    arng <- arng()
     st_age_pcl <- array(NaN, c(nrow(st_gsm_pcl()), length(arng)))
     for(j in 1:length(arng)) {
       age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])]
@@ -213,26 +260,30 @@ shinyServer(function(input, output) {
     }
     rownames(st_age_pcl) <- rownames(st_gsm_pcl)
     st_age_pcl
-  })
+  }
 
   # scaling genes (rows) to mean 0 and variance 1
-  st_age_pcl_rowz <- reactive({
-    st_age_pcl <- st_age_pcl()
-    st_gsm_pcl <- st_gsm_pcl()
-    idx <- apply(st_age_pcl,1,var)
-    st_age_pcl_rowz <- t(apply(st_age_pcl, 1, scale))
-    rownames(st_age_pcl_rowz) <- rownames(st_gsm_pcl)
-    st_age_pcl_rowz <- st_age_pcl_rowz[-which(idx==0),]
-    colnames(st_age_pcl_rowz) <- arng()
-    st_age_pcl_rowz
-  })
+  st_age_pcl_rowz <- function(arng){
+    withProgress(message="Processing heat map", detail="Creating expression matrix of genes by age",value = 0.1, {
+      st_age_pcl <- st_age_pcl(arng)
+      st_gsm_pcl <- st_gsm_pcl()
+      incProgress(0.6,detail="Scaling rows to mean 0 and variance 1")
+      idx <- apply(st_age_pcl,1,var)
+      st_age_pcl_rowz <- t(apply(st_age_pcl, 1, scale))
+      rownames(st_age_pcl_rowz) <- rownames(st_gsm_pcl)
+      incProgress(0.3,detail="Removing null values")
+      st_age_pcl_rowz <- st_age_pcl_rowz[-which(idx==0),]
+      colnames(st_age_pcl_rowz) <- arng
+      st_age_pcl_rowz
+    })
+  }
 
   # boot_rho is the output of the bootstrap runs
   # It contains <nboot> rows and <#genes> columns
   boot_rho <- reactive({
     clust <- makeCluster(10) # Initiate cluster
-    arng <- arng()
-    nboot <- 10
+    arng <- inarng()
+    nboot <- input$numruns
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
@@ -265,12 +316,12 @@ shinyServer(function(input, output) {
 
   # processing rho into comparable correlation scores (fisherz)
   bxs_boot_fisherz <- reactive({
-    st_gsm_pcl <- st_gsm_pcl()
-    boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) })) # Fisher z-transformation
-    bxs_boot_fisherz <- apply(boot_fisherz, 2, quantile, probs=c(1, 0.9, 0.75, 0.5, 0.25, 0.1, 0), na.rm=T)
-    bxs_boot_fisherz <- data.frame(bxs_boot_fisherz)
-    colnames(bxs_boot_fisherz) <- rownames(st_gsm_pcl)
-    bxs_boot_fisherz
+      st_gsm_pcl <- st_gsm_pcl()
+      boot_fisherz <- t(apply(boot_rho(), 1, function(x) { scale(0.5*log((1+x)/(1-x))) })) # Fisher z-transformation
+      bxs_boot_fisherz <- apply(boot_fisherz, 2, quantile, probs=c(1, 0.9, 0.75, 0.5, 0.25, 0.1, 0), na.rm=T)
+      bxs_boot_fisherz <- data.frame(bxs_boot_fisherz)
+      colnames(bxs_boot_fisherz) <- rownames(st_gsm_pcl)
+      bxs_boot_fisherz
   })
 
   # magnitudes of scores of predictive genes
@@ -295,7 +346,7 @@ shinyServer(function(input, output) {
     score <- df[,2]
     p <- ggplot(data=df, aes(x=score), environment = .e) + 
       geom_histogram(binwidth=.05,fill="red",col="gray",alpha=0.4) +
-      labs(x="score magnitude", y="") +
+      labs(x="Spearman correlation coefficient magnitude", y="") +
       theme(axis.text=element_text(size=7),
             axis.title=element_text(size=9))
 
@@ -307,13 +358,15 @@ shinyServer(function(input, output) {
   output$slider_plot2 <- renderUI({
     lwrbound = signif(min(abs_scores()),3)
     uprbound = signif(max(abs_scores()),3)
-    sliderInput("score_mag", label = h6("Choose a minimum score:"), ticks=FALSE,min = lwrbound, 
+    sliderInput("score_mag", label = "Choose a cutoff score:", ticks=FALSE,min = lwrbound, 
                 max = uprbound,value= (uprbound - lwrbound) / 2 + lwrbound)
   })
-
-  # caption for plot2
-  output$plot2_caption <- renderText({
+  plotcap2 <- reactive({
     paste("# of genes selected:\n",num_genes())
+  })
+  # caption for plot2
+  output$plot2_caption <- renderUI({
+    h6(plotcap2())
   })
 
 
@@ -340,7 +393,7 @@ shinyServer(function(input, output) {
   # all predictive genes
   all_predg <- eventReactive(input$runpcl, {
     bxs_boot_fisherz <- bxs_boot_fisherz()
-    withProgress(message="Filtering genes with high scores", value = 0.1, {
+    withProgress(message="Identifying predictive genes", value = 0.1, {
       all_predg <- colnames(bxs_boot_fisherz)[which((bxs_boot_fisherz[4,]>0 & bxs_boot_fisherz[6,]>=1) | 
                                                       (bxs_boot_fisherz[4,]<0 & bxs_boot_fisherz[2,]<=-1))]
       incProgress(0.9)
@@ -349,7 +402,7 @@ shinyServer(function(input, output) {
   })
 
   # positive predictive genes greater than slider
-  select_pos_predg <- eventReactive(input$rungt,{
+  select_pos_predg <- eventReactive(input$runposgt,{
     withProgress(message = "Generating positive GO terms\n", detail = "Building most specific GOs", value = 0, {
       bxs_boot_fisherz <- bxs_boot_fisherz()
       all <- colnames(bxs_boot_fisherz)[which(((bxs_boot_fisherz[4,]>0 & bxs_boot_fisherz[6,]>=1)&
@@ -359,7 +412,7 @@ shinyServer(function(input, output) {
   })
 
   # negative predictive genes greater than slider
-  select_neg_predg <- eventReactive(input$rungt,{
+  select_neg_predg <- eventReactive(input$runneggt,{
     withProgress(message = "Generating negative GO terms\n", detail = "Building most specific GOs", value = 0, {
       bxs_boot_fisherz <- bxs_boot_fisherz()
       all <- colnames(bxs_boot_fisherz)[which(((bxs_boot_fisherz[4,]<0 & bxs_boot_fisherz[2,]<=-1)) &
@@ -369,42 +422,57 @@ shinyServer(function(input, output) {
   })
 
   # positive pcl table
-  pos_pcl <- eventReactive(input$tablepcl,{
-    withProgress(message = 'Generating positive data', detail = "0/3", value = 0, {
+  pos_pcl <- eventReactive(input$runposheat,{
       bxs_boot_fisherz <- bxs_boot_fisherz()
-      st_age_pcl_rowz <- st_age_pcl_rowz()
-      incProgress(1/3, detail = "1/3")
+      st_age_pcl_rowz <- st_age_pcl_rowz(heatposarng())
       pos_predg <- pos_predg()
       pos_predg <- intersect(pos_predg, rownames(st_age_pcl_rowz))
-      incProgress(1/3, detail = "2/3")
       pos_predg_pcl_rowz <- cbind(gene_sym()[pos_predg,],
                                   t(bxs_boot_fisherz[4,pos_predg]), 
                                   apply(st_age_pcl_rowz[pos_predg,], 2, sprintf, fmt="%.6f"))
-      colnames(pos_predg_pcl_rowz) <- c("symbol", "name","score", arng())
-      incProgress(1/3, detail = "3/3")
-    })
+      colnames(pos_predg_pcl_rowz) <- c("symbol", "name","score", heatposarng())
     pos_predg_pcl_rowz[order(-pos_predg_pcl_rowz$score,pos_predg_pcl_rowz$name),]
   })
-
-  # negative pcl table
-  neg_pcl <- eventReactive(input$tablepcl,{
-    withProgress(message = 'Generating negative data', detail = "0/3", value = 0, {
+  # positive score table
+  pos_score <- eventReactive(input$tablepcl,{
+    withProgress(message="Generating positive score table",value=0.1,{
       bxs_boot_fisherz <- bxs_boot_fisherz()
-      st_age_pcl_rowz <- st_age_pcl_rowz()
-      incProgress(1/3, detail = "1/3")
+      pos_predg <- pos_predg()
+      pos_predg <- intersect(pos_predg, rownames(st_gsm_pcl()))
+      pos_predg_pcl_rowz <- cbind(gene_sym()[pos_predg,],
+                                  t(bxs_boot_fisherz[4,pos_predg]))
+      colnames(pos_predg_pcl_rowz) <- c("symbol", "name","score")
+      incProgress(0.9)
+      res <- pos_predg_pcl_rowz[order(-pos_predg_pcl_rowz$score,pos_predg_pcl_rowz$name),]
+    })
+  })
+  # negative pcl table
+  neg_pcl <- eventReactive(input$runnegheat,{
+      bxs_boot_fisherz <- bxs_boot_fisherz()
+      st_age_pcl_rowz <- st_age_pcl_rowz(heatnegarng())
       neg_predg <- neg_predg()
       neg_predg <- intersect(neg_predg, rownames(st_age_pcl_rowz))
-      incProgress(1/3, detail = "2/3")
       neg_predg_pcl_rowz <- cbind(gene_sym()[neg_predg,],
                                   t(bxs_boot_fisherz[4,neg_predg]), 
                                   apply(st_age_pcl_rowz[neg_predg,], 2, sprintf, fmt="%.6f"))
-      colnames(neg_predg_pcl_rowz) <- c("symbol", "name","score", arng())
-      incProgress(0.25, detail = "3/3")
-    })
+      colnames(neg_predg_pcl_rowz) <- c("symbol", "name","score", heatnegarng())
     neg_predg_pcl_rowz[order(neg_predg_pcl_rowz$score,neg_predg_pcl_rowz$name),]
   })
+  # negative score table
+  neg_score <- eventReactive(input$tablepcl,{
+    withProgress(message="Generating negative score table",value=0.1,{
+      bxs_boot_fisherz <- bxs_boot_fisherz()
+      neg_predg <- neg_predg()
+      neg_predg <- intersect(neg_predg, rownames(st_gsm_pcl()))
+      neg_predg_pcl_rowz <- cbind(gene_sym()[neg_predg,],
+                                  t(bxs_boot_fisherz[4,neg_predg]))
+      colnames(neg_predg_pcl_rowz) <- c("symbol", "name","score")
+      incProgress(0.9)
+      res <- neg_predg_pcl_rowz[order(-neg_predg_pcl_rowz$score,neg_predg_pcl_rowz$name),]
+    })
+  })
 
-
+  
 
 
 #
@@ -415,30 +483,22 @@ shinyServer(function(input, output) {
 
 
   output$ptable <- DT::renderDataTable({
-    pos <- pos_pcl()
-    cap <- paste0('Table 1: Genes with the most positive correlation with age between ages ', lwr(), ' to ', upr(),'.')
-    DT::datatable(pos[,1:3], rownames=FALSE, caption = cap)
+    cap <- paste0('Table 1: Genes with the most positive correlation with age between ages ', inlwr(), ' to ', inupr(),'.')
+    DT::datatable(pos_score(), rownames=FALSE, caption = cap)
   })
 
   output$ntable <- DT::renderDataTable({
-    neg <- neg_pcl()
-    cap <- paste0('Table 2: Genes with the most negative correlation with age between ages ', lwr(), ' to ', upr(),'.')
-    DT::datatable(neg[,1:3], rownames=FALSE, caption = cap)
+    cap <- paste0('Table 2: Genes with the most negative correlation with age between ages ', inlwr(), ' to ', inupr(),'.')
+    DT::datatable(neg_score(), rownames=FALSE, caption = cap)
   })
 
-  output$ppcl <- DT::renderDataTable({
-    pos <- pos_pcl()
-    cap <- paste0('Table 3: Expression values of genes with the most positive Spearman correlation scores for ages ', lwr(), ' to ', upr(),'.')
-    DT::datatable(pos, rownames=FALSE, caption = cap)
+  output$heatposage <- renderUI({
+    sliderInput("heatposage",label="Choose an age range:",value=c(input$age_range[1],input$age_range[2]),min=min(arng()),max=max(arng()))
   })
-
-  output$npcl <- DT::renderDataTable({
-    neg <- neg_pcl()
-    cap <- paste0('Table 4: Expression values of genes with the most negative Spearman correlation scores for ages ', lwr(), ' to ', upr(),'.')
-    DT::datatable(neg, rownames=FALSE, caption = cap)
+  output$heatnegage <- renderUI({
+    sliderInput("heatnegage",label="Choose an age range:",value=c(input$age_range[1],input$age_range[2]),min=min(arng()),max=max(arng()))
   })
-
-  output$posheat <- renderD3heatmap({
+  posheatmap <- eventReactive(input$runposheat,{
     pos_p <- pos_pcl()
     pos_p <- pos_p[!(is.na(pos_p[,1]) | pos_p[,1]==""), ]
     rownames(pos_p) <- pos_p[,1]
@@ -448,10 +508,16 @@ shinyServer(function(input, output) {
     pos_p[indx] <- lapply(pos_p[indx], function(x) as.numeric(as.character(x)))
     length <- 50
     if (dim(pos_p)[1] < 50) length <- dim(pos_p)[1] 
-    d3heatmap(pos_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7,colors="Spectral")
+    usergenes <- toupper(unlist(strsplit(input$userposgenes, " ")))
+    if (length(usergenes) == 0) pos_op <- pos_p[1:length,]
+    else pos_op <- pos_p[usergenes,]
+    
+    d3heatmap(pos_op,Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7)
   })
-
-  output$negheat <- renderD3heatmap({
+  output$posheat <- renderD3heatmap({
+    posheatmap()
+  })
+  negheatmap <- eventReactive(input$runnegheat,{
     neg_p <- neg_pcl()
     neg_p <- neg_p[!(is.na(neg_p[,1]) | neg_p[,1]==""), ]
     rownames(neg_p) <- neg_p[,1]
@@ -461,13 +527,20 @@ shinyServer(function(input, output) {
     neg_p[indx] <- lapply(neg_p[indx], function(x) as.numeric(as.character(x)))
     length <- 50
     if (dim(neg_p)[1] < 50) length <- dim(neg_p)[1] 
-    d3heatmap(neg_p[1:length,],Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7,colors="Spectral")
+    usergenes <- toupper(unlist(strsplit(input$userneggenes, " ")))
+    if (length(usergenes) == 0) neg_op <- neg_p[1:length,]
+    else neg_op <- neg_p[usergenes,]
+    d3heatmap(neg_op,Colv = FALSE,xaxis_font_size=7,yaxis_font_size=7)
+  })
+
+  output$negheat <- renderD3heatmap({
+    negheatmap()
   })
 
   # gene ontology of positive predictive genes
-  pos_go <- eventReactive(input$rungt,{
+  pos_go <- eventReactive(input$runposgt,{
     all_predg <- select_pos_predg()
-    withProgress(message = "Generating positive GO terms\n", detail = "Compiling tables", value = 0.1, {
+    withProgress(message = "Generating positive GO terms\n", detail = "Compiling tables", value = 0.05, {
       gsm_pcl <- gsm_pcl()
       incProgress(0.05, detail = "Compiling tables")
       ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
@@ -477,8 +550,8 @@ shinyServer(function(input, output) {
       selector <- function(x) {return (x==1)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-      incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
-      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
+      incProgress(0.4, detail = paste("Running", toupper(input$posstat),"test"))
+      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$posstat)
       incProgress(0.2, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, pValue = result,
                          orderBy = "pValue",topNodes=1000)
@@ -489,7 +562,7 @@ shinyServer(function(input, output) {
     allRes
   })
 
-  neg_go <- eventReactive(input$rungt,{
+  neg_go <- eventReactive(input$runneggt,{
     all_predg <- select_neg_predg()
     withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0.05, {
       gsm_pcl <- gsm_pcl()
@@ -501,8 +574,8 @@ shinyServer(function(input, output) {
       selector <- function(x) {return (x==1)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-      incProgress(0.4, detail = paste("Running", toupper(input$stat),"test"))
-      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$stat)
+      incProgress(0.4, detail = paste("Running", toupper(input$negstat),"test"))
+      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$negstat)
       incProgress(0.2, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, pValue = result,
                          orderBy = "pValue",topNodes=1000)
@@ -515,15 +588,15 @@ shinyServer(function(input, output) {
 
   output$pos_goterms <- DT::renderDataTable({
     allRes <- pos_go()
-    cap <- paste('Table 5: GO terms enriched in positively correlated genes.')
-    DT::datatable(allRes, rownames=TRUE, caption = cap)
+    cap <- paste('Table 3: GO terms enriched in positively correlated genes.')
+    DT::datatable(allRes, rownames=FALSE, caption = cap)
   })
 
   # gene ontology of negative predictive genes
   output$neg_goterms <- DT::renderDataTable({
     allRes <- neg_go()
-    cap <- paste('Table 6: GO terms enriched in negatively correlated genes.')
-    DT::datatable(allRes, rownames=TRUE, caption = cap)
+    cap <- paste('Table 4: GO terms enriched in negatively correlated genes.')
+    DT::datatable(allRes, rownames=FALSE, caption = cap)
   })
 
   output$ptable_dl <- downloadHandler(
@@ -534,16 +607,6 @@ shinyServer(function(input, output) {
   output$ntable_dl <- downloadHandler(
     filename = function(){paste(lwr(),"-",upr(),"neg_genes.csv")},
     content = function(file){write.csv(neg_pcl()[,1:3],file)}
-  )
-
-  output$ppcl_dl <- downloadHandler(
-    filename = function(){paste(lwr(),"-",upr(),"pos_scores.csv")},
-    content = function(file){write.csv(pos_pcl(),file)}
-  )
-
-  output$npcl_dl <- downloadHandler(
-    filename = function(){paste(lwr(),"-",upr(),"neg_scores.csv")},
-    content = function(file){write.csv(neg_pcl(),file)}
   )
 
   output$pgo_dl <- downloadHandler(
