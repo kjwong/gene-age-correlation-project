@@ -2,14 +2,22 @@
 ## Collaborators: Arjun Krishnan
 ## Murphy Lab
 
+
+if (!require("topGO")) {
+  source("http://bioconductor.org/biocLite.R")
+  biocLite("topGO")
+}
+if (!require("org.Hs.eg.db")) {
+  source("http://bioconductor.org/biocLite.R")
+  biocLite('org.Hs.eg.db')
+}
+
 if (!require("data.table")) install.packages('data.table')
 if (!require("parallel")) install.packages('parallel')
 if (!require("shiny")) install.packages('shiny')
 if (!require("DT")) install.packages('DT')
 if (!require("d3heatmap")) install.packages('d3heatmap')
 if (!require("ggplot2")) install.packages('ggplot2')
-if (!require("org.Hs.eg.db")) install.packages('org.Hs.eg.db')
-if (!require("topGO")) install.packages('topGO')
 if (!require("plotly")) install.packages('plotly')
 if (!require("stats")) install.packages('stats')
 
@@ -552,18 +560,31 @@ shinyServer(function(input, output) {
       selector <- function(x) {return (x==1)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-      incProgress(0.4, detail = paste("Running", toupper(input$posstat),"test"))
-      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$posstat)
-      incProgress(0.2, detail = "Aggregating results")
+      incProgress(0.8)
+    })
+    sampleGOdata
+  })
+
+  pos_go_table <- reactive({
+    sampleGOdata <- pos_go()
+    withProgress(message = "Generating positive GO terms\n", detail = paste("Running", toupper(input$posstat),"test"), value = 0.1,{
+      result <- pos_go_results()
+      incProgress(0.7, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, pValue = result,
                          orderBy = "pValue",topNodes=1000)
       allRes <- allRes[allRes$pValue < 0.05,]
       allRes[,"Fold Enrichment"] <- round(allRes[,"Significant"] / allRes[,"Expected"],1)
+      incProgress(0.2)
       allRes <- allRes[c("GO.ID","Term","Annotated","Significant","Expected","Fold Enrichment","pValue")]
     })
-    allRes
   })
 
+  pos_go_results <- reactive({
+    sampleGOdata <- pos_go()
+    result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$posstat)
+  })
+  
+ 
   neg_go <- eventReactive(input$runneggt,{
     all_predg <- select_neg_predg()
     withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0.05, {
@@ -576,29 +597,53 @@ shinyServer(function(input, output) {
       selector <- function(x) {return (x==1)}
       sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
-      incProgress(0.4, detail = paste("Running", toupper(input$negstat),"test"))
-      result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$negstat)
-      incProgress(0.2, detail = "Aggregating results")
+      incProgress(0.8)
+    })
+    sampleGOdata
+  })
+
+  neg_go_table <- reactive({
+    sampleGOdata <- neg_go()
+    withProgress(message = "Generating negative GO terms\n",detail = paste("Running", toupper(input$negstat),"test"),value=0.1,{
+      result <- neg_go_results()
+      incProgress(0.7, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, pValue = result,
                          orderBy = "pValue",topNodes=1000)
       allRes <- allRes[allRes$pValue < 0.05,]
       allRes[,"Fold Enrichment"] <- round(allRes[,"Significant"] / allRes[,"Expected"],1)
+      incProgress(0.2)
       allRes <- allRes[c("GO.ID","Term","Annotated","Significant","Expected","Fold Enrichment","pValue")]
     })
-    allRes
+  })
+
+  neg_go_results <- reactive({
+    sampleGOdata <- neg_go()
+    result <- runTest(sampleGOdata, algorithm = "classic", statistic = input$negstat)
   })
 
   output$pos_goterms <- DT::renderDataTable({
-    allRes <- pos_go()
+    allRes <- pos_go_table()
     cap <- paste('Table 3: GO terms enriched in positively correlated genes.')
     DT::datatable(allRes, rownames=FALSE, caption = cap)
   })
 
   # gene ontology of negative predictive genes
   output$neg_goterms <- DT::renderDataTable({
-    allRes <- neg_go()
+    allRes <- neg_go_table()
     cap <- paste('Table 4: GO terms enriched in negatively correlated genes.')
     DT::datatable(allRes, rownames=FALSE, caption = cap)
+  })
+
+  output$pos_go_graph <- renderPlot({
+    sampleGOdata <- pos_go()
+    result <- pos_go_results()
+    showSigOfNodes(sampleGOdata,score(result),firstSigNodes=input$posnodes,useInfo="def")
+  })
+
+  output$neg_go_graph <- renderPlot({
+    sampleGOdata <- pos_go()
+    result <- neg_go_results()
+    showSigOfNodes(sampleGOdata,score(result),firstSigNodes=input$negnodes,useInfo="def")
   })
 
   output$ptable_dl <- downloadHandler(

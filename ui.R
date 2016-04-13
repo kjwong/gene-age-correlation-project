@@ -129,6 +129,7 @@ shinyUI(fluidPage(
                    conditionalPanel(condition="output.ptable",
                                     downloadButton("ptable_dl","Download table"),
                                     hr(),
+                                    helpText("Create a heat map for positively predictive genes."),
                                     fluidRow(
                                       column(6,
                                         uiOutput("heatposage")),
@@ -140,6 +141,7 @@ shinyUI(fluidPage(
                                     ),
                                     actionButton("runposheat","Generate heat map"),
                                     hr(),
+                                    helpText("Perform GO term analysis for positively predictive genes."),
                                     selectInput(inputId = "posstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t")),
                                     actionButton("runposgt", "Generate GO terms")
                                     )
@@ -149,6 +151,7 @@ shinyUI(fluidPage(
                    conditionalPanel(condition="output.ntable",
                                     downloadButton("ntable_dl","Download table"),
                                     hr(),
+                                    helpText("Create a heat map for negatively predictive genes."),
                                     fluidRow(
                                       column(6,
                                              
@@ -161,6 +164,7 @@ shinyUI(fluidPage(
                                     ),
                                     actionButton("runnegheat","Generate heat map"),
                                     hr(),
+                                    helpText("Perform GO term analysis for negatively predictive genes."),
                                     selectInput(inputId = "negstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t")),
                                     actionButton("runneggt", "Generate GO terms")
                                     )
@@ -185,10 +189,18 @@ shinyUI(fluidPage(
           id = 'goterms',
           tabPanel('Pos. correlation',DT::dataTableOutput('pos_goterms'),
                    conditionalPanel(condition="output.pos_goterms",
-                                    downloadButton("pgo_dl","Download table"))),
+                                    downloadButton("pgo_dl","Download table"),
+                                    hr(),
+                                    helpText("Induced subgraph of the most significant GO terms."),
+                                    plotOutput("pos_go_graph"),
+                                    sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=10))),
           tabPanel('Neg. correlation',DT::dataTableOutput('neg_goterms'),
                    conditionalPanel(condition="output.neg_goterms",
-                                    downloadButton("ngo_dl","Download table")))  
+                                    downloadButton("ngo_dl","Download table"),
+                                    hr(),
+                                    helpText("Induced subgraph of the most significant GO terms."),
+                                    plotOutput("neg_go_graph"),
+                                    sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=10)))  
         ),
         hr()
       )
