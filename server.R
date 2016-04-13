@@ -194,6 +194,7 @@ shinyServer(function(input, output) {
     .e <- environment()
     gsm_age <- gsm_age()
     colnames(gsm_age) <- c("age")
+    pdf(NULL)
     p <- ggplot(data=gsm_age,aes(x=age),environment=.e) +
       geom_histogram(binwidth=2,fill="blue",col="gray",alpha=0.4) +
       labs(x="age",y="") +
@@ -344,6 +345,7 @@ shinyServer(function(input, output) {
     .e <- environment()
     df <- cbind(data.frame(all_predg()), t(abs_scores()))
     score <- df[,2]
+    pdf(NULL)
     p <- ggplot(data=df, aes(x=score), environment = .e) + 
       geom_histogram(binwidth=.05,fill="red",col="gray",alpha=0.4) +
       labs(x="Spearman correlation coefficient magnitude", y="") +
