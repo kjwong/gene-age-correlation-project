@@ -7,12 +7,14 @@ if (!require("DT")) install.packages('DT')
 if (!require("d3heatmap")) install.packages('d3heatmap')
 if (!require("plotly")) install.packages('plotly')
 if (!require("shinyBS")) install.packages('shinyBS')
+if (!require("networkD3")) install.packages('networkD3')
 
 library(shiny)
 library(DT)
 library(d3heatmap)
 library(shinyBS)
 library(plotly)
+library(networkD3)
 
 shinyUI(fluidPage(
   
@@ -21,19 +23,19 @@ shinyUI(fluidPage(
   h4("This app lets you visualize and analyze the genes most correlated with age in a specified age range."),
   h4("Upload (1) expression data and (2) a table of the samples and their respective ages, and hit run!"),
   hr(),
-
+  
   sidebarLayout(
     sidebarPanel(
       h4("Select a sample expression file."),
       bsTooltip('file1',"Row names: Entrez Gene ID, Column names: Sample ID",
                 placement="right",trigger="hover"),
-
+      
       fileInput('file1',label=NULL,accept = c('.pcl')),
       radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, '\t'),
       checkboxInput('header1', 'Header', TRUE),
       tags$hr(),
       h4("Select a file with samples and their ages."),
-
+      
       fileInput('file2',label=NULL,accept = c(
         'text/csv',
         'text/comma-separated-values',
@@ -73,18 +75,21 @@ shinyUI(fluidPage(
         uiOutput("plot_caption"),
         hr(),
         fluidRow(
-          column(6,
-                  uiOutput("slider_plot")
-            ),
-          column(6,
-                 numericInput("numruns",label="Choose number of bootstrap runs [1,50]:",value=10,min=1,max=50),
+          column(4,
+                 uiOutput("slider_plot")
+          ),
+          column(4,
+                 selectInput("corr",label="Choose correlation coefficient:",choices=c("pearson","spearman"),selected="pearson")
+          ),
+          column(4,
+                 numericInput("numruns",label="Choose number of runs [1,50]:",value=10,min=1,max=50),
                  bsTooltip('numruns',"Increasing the number of runs will yield more accurate correlation scores but will take longer.",
                            placement="bottom",trigger="hover")
           )
-            
+          
         ),
         
-        actionButton("runpcl","Run gene expression-age correlation"),
+        actionButton("runpcl","Run correlation"),
         hr()
       ),
       
@@ -92,7 +97,7 @@ shinyUI(fluidPage(
       conditionalPanel(
         condition = "output.plot2",
         h3("Predictive gene count:"),
-        helpText("Predictive genes are those most correlated with age within your selected age range.")
+        helpText("Predictive genes are those most correlated with age within your selected age range (approximately 10% of total genes).")
       ),
       conditionalPanel(
         condition = "input.runpcl",
@@ -101,18 +106,18 @@ shinyUI(fluidPage(
         hr(),
         conditionalPanel(
           condition = "output.plot2",
-                   uiOutput("slider_plot2")
-                   
-                   
+          uiOutput("slider_plot2")
+          
+          
           
         )
       ),
-
+      
       conditionalPanel(
         condition = "output.plot2",
         fluidRow(
           column(3,
-            actionButton("tablepcl","Select genes"))
+                 actionButton("tablepcl","Select genes"))
         ),
         hr()
       ),
@@ -127,82 +132,101 @@ shinyUI(fluidPage(
           id = 'dataset',
           tabPanel('Pos. correlation', DT::dataTableOutput('ptable'),
                    conditionalPanel(condition="output.ptable",
-                                    downloadButton("ptable_dl","Download table"),
+                                    downloadButton("ptable_dl","Download"),
                                     hr(),
+                                    h4("Expression value heatmap and clustering"),
                                     helpText("Create a heat map for positively predictive genes."),
                                     fluidRow(
-                                      column(6,
-                                        uiOutput("heatposage")),
-                                      column(6,
-                                        textInput("userposgenes",label="Choose genes for heat map:",value=""),
-                                        bsTooltip('userposgenes',"Enter 3 or more gene names separated by space.",
-                                                  placement="bottom",trigger="hover"),
-                                        helpText("If left blank, genes with the top 50 scores will be used."))
+                                      column(4,
+                                             uiOutput("heatposage")),
+                                      column(4,
+                                             numericInput("heatposnum",label="Choose a number of genes to display:",value=100,min=3,max=NA),
+                                             bsTooltip('heatposnum',"minimum = 3",
+                                                       placement="bottom",trigger="hover")),
+                                      column(4,
+                                             textInput("userposgenes",label="Choose genes:",value=""),
+                                             bsTooltip('userposgenes',"Enter 3 or more gene names separated by space.",
+                                                       placement="bottom",trigger="hover"),
+                                             helpText("If left blank, all genes are used."))
                                     ),
                                     actionButton("runposheat","Generate heat map"),
                                     hr(),
+                                    conditionalPanel(
+                                      condition = "input.runposheat",
+                                      d3heatmapOutput("posheat"),
+                                      conditionalPanel(
+                                        condition = "output.posheat",
+                                        helpText("Click and drag to zoom in. Click to zoom out. Hover to see values.")
+                                      ),
+                                      hr()
+                                    ),
+                                    h4("Gene ontology analysis"),
                                     helpText("Perform GO term analysis for positively predictive genes."),
                                     selectInput(inputId = "posstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t")),
-                                    actionButton("runposgt", "Generate GO terms")
-                                    )
-                   ),
-                                    
+                                    actionButton("runposgt", "Generate GO terms"),
+                                    hr(),
+                                    conditionalPanel(
+                                      condition = "input.runposgt",
+                                      DT::dataTableOutput('pos_goterms'),
+                                      conditionalPanel(condition="output.pos_goterms",
+                                                       downloadButton("pgo_dl","Download"),
+                                                       hr(),
+                                                       simpleNetworkOutput("pos_go_graph"),
+                                                       helpText("Induced subgraph of the most significant GO terms."),
+                                                       sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=10)))
+                   )
+          ),
+          
           tabPanel('Neg. correlation', DT::dataTableOutput('ntable'),
                    conditionalPanel(condition="output.ntable",
-                                    downloadButton("ntable_dl","Download table"),
+                                    downloadButton("ntable_dl","Download"),
                                     hr(),
+                                    h4("Expression value heatmap and clustering"),
                                     helpText("Create a heat map for negatively predictive genes."),
                                     fluidRow(
-                                      column(6,
-                                             
+                                      column(4,
                                              uiOutput("heatnegage")),
-                                      column(6,
-                                             textInput("userneggenes",label="Choose genes for heat map:",value=""),
+                                      column(4,
+                                             numericInput("heatnegnum",label="Choose a number of genes to display:",value=100,min=3,max=NA),
+                                             bsTooltip('heatnegnum',"minimum = 3",
+                                                       placement="bottom",trigger="hover")),
+                                      column(4,
+                                             textInput("userneggenes",label="Choose genes:",value=""),
                                              bsTooltip('userneggenes',"Enter 3 or more gene names separated by space.",
                                                        placement="bottom",trigger="hover"),
-                                             helpText("If left blank, genes with the top scores will be used."))
+                                             helpText("If left blank, all genes are used."))
                                     ),
                                     actionButton("runnegheat","Generate heat map"),
                                     hr(),
+                                    conditionalPanel(
+                                      condition = "input.runnegheat",
+                                      d3heatmapOutput("negheat"),
+                                      conditionalPanel(
+                                        condition = "output.negheat",
+                                        helpText("Click and drag to zoom in. Click to zoom out. Hover to see values.")
+                                      ),
+                                      hr()
+                                    ),
+                                    h4("Gene ontology analysis"),
                                     helpText("Perform GO term analysis for negatively predictive genes."),
                                     selectInput(inputId = "negstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t")),
-                                    actionButton("runneggt", "Generate GO terms")
+                                    actionButton("runneggt", "Generate GO terms"),
+                                    hr(),
+                                    conditionalPanel(
+                                      condition = "input.runneggt",
+                                      DT::dataTableOutput('neg_goterms'),
+                                      conditionalPanel(condition="output.neg_goterms",
+                                                       downloadButton("ngo_dl","Download"),
+                                                       hr(),
+                                                       simpleNetworkOutput("neg_go_graph"),
+                                                       helpText("Induced subgraph of the most significant GO terms."),
+                                                       sliderInput("negnodes",label="Number of significant nodes:",value=3,min=1,max=10),
+                                                       hr()
+                                      )
                                     )
                    )
-        ),
-        hr()
-      ),
-      conditionalPanel(
-        condition = "input.runposheat || input.runnegheat",
-        h4("Expression value heatmap and clustering"),
-        tabsetPanel(
-          id = 'heatmap',
-          tabPanel('Pos. correlation', d3heatmapOutput("posheat")),
-          tabPanel('Neg. correlation', d3heatmapOutput("negheat"))
-        ),
-        hr()
-      ),
-      conditionalPanel(
-        condition = "input.runposgt || input.runneggt",
-        h4("Gene ontology analysis"),
-        tabsetPanel(
-          id = 'goterms',
-          tabPanel('Pos. correlation',DT::dataTableOutput('pos_goterms'),
-                   conditionalPanel(condition="output.pos_goterms",
-                                    downloadButton("pgo_dl","Download table"),
-                                    hr(),
-                                    helpText("Induced subgraph of the most significant GO terms."),
-                                    plotOutput("pos_go_graph"),
-                                    sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=10))),
-          tabPanel('Neg. correlation',DT::dataTableOutput('neg_goterms'),
-                   conditionalPanel(condition="output.neg_goterms",
-                                    downloadButton("ngo_dl","Download table"),
-                                    hr(),
-                                    helpText("Induced subgraph of the most significant GO terms."),
-                                    plotOutput("neg_go_graph"),
-                                    sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=10)))  
-        ),
-        hr()
+          )
+        )
       )
     )
   )
