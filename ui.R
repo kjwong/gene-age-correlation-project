@@ -18,10 +18,9 @@ library(networkD3)
 
 shinyUI(fluidPage(
   
-  h1("A GUI to visualize and analyze age-associated genes in humans"),
+  h1("Web interface for analyzing age-associated gene expression in humans"),
   hr(),
   h4("This app lets you visualize and analyze the genes most correlated with age in a specified age range."),
-  h4("Upload (1) expression data and (2) a table of the samples and their respective ages, and hit run!"),
   hr(),
   
   sidebarLayout(
@@ -69,7 +68,7 @@ shinyUI(fluidPage(
       uiOutput("nosamp"),
       conditionalPanel(
         condition = "input.run_samples",
-        h3("Sample count by age:"),
+        h3("Sample count by age"),
         helpText("The age distribution of your filtered samples."),
         plotlyOutput("plot"),
         uiOutput("plot_caption"),
@@ -96,8 +95,8 @@ shinyUI(fluidPage(
       uiOutput("nosamp2"),
       conditionalPanel(
         condition = "output.plot2",
-        h3("Predictive gene count:"),
-        helpText("Predictive genes are those most correlated with age within your selected age range (approximately 10% of total genes).")
+        h3("Predictive gene count"),
+        helpText("Predictive genes are those most correlated with age within your selected age range (~10% of total genes).")
       ),
       conditionalPanel(
         condition = "input.runpcl",
@@ -107,9 +106,6 @@ shinyUI(fluidPage(
         conditionalPanel(
           condition = "output.plot2",
           uiOutput("slider_plot2")
-          
-          
-          
         )
       ),
       
@@ -123,14 +119,13 @@ shinyUI(fluidPage(
       ),
       conditionalPanel(
         condition = "input.tablepcl",
-        h3("Age-associated genes:")
+        h3("Age-associated genes")
       ),
       conditionalPanel(
         condition = "input.tablepcl",
-        h4("Gene lists"),
         tabsetPanel(
           id = 'dataset',
-          tabPanel('Pos. correlation', DT::dataTableOutput('ptable'),
+          tabPanel('Positive', h4("Gene list"), helpText("Genes positively correlated with age."),DT::dataTableOutput('ptable'),
                    conditionalPanel(condition="output.ptable",
                                     downloadButton("ptable_dl","Download"),
                                     hr(),
@@ -171,13 +166,13 @@ shinyUI(fluidPage(
                                       conditionalPanel(condition="output.pos_goterms",
                                                        downloadButton("pgo_dl","Download"),
                                                        hr(),
-                                                       simpleNetworkOutput("pos_go_graph"),
+                                                       forceNetworkOutput("pos_go_graph"),
                                                        helpText("Induced subgraph of the most significant GO terms."),
                                                        sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=10)))
                    )
           ),
           
-          tabPanel('Neg. correlation', DT::dataTableOutput('ntable'),
+          tabPanel('Negative', h4("Gene list"), helpText("Genes negatively correlated with age."),DT::dataTableOutput('ntable'),
                    conditionalPanel(condition="output.ntable",
                                     downloadButton("ntable_dl","Download"),
                                     hr(),
@@ -218,9 +213,9 @@ shinyUI(fluidPage(
                                       conditionalPanel(condition="output.neg_goterms",
                                                        downloadButton("ngo_dl","Download"),
                                                        hr(),
-                                                       simpleNetworkOutput("neg_go_graph"),
+                                                       forceNetworkOutput("neg_go_graph"),
                                                        helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("negnodes",label="Number of significant nodes:",value=3,min=1,max=10),
+                                                       sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=10),
                                                        hr()
                                       )
                                     )

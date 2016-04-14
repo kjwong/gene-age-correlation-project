@@ -627,7 +627,7 @@ shinyServer(function(input, output) {
     DT::datatable(allRes, rownames=FALSE)
   })
 
-  output$pos_go_graph <- renderSimpleNetwork({
+  output$pos_go_graph <- renderForceNetwork({
     sampleGOdata <- pos_go()
     result <- pos_go_results()
     allRes <- GenTable(sampleGOdata, pValue = result,
@@ -637,11 +637,19 @@ shinyServer(function(input, output) {
     gd <- get.data.frame(ig, what = "edges")
     gd[,1] <- Term(gd[,1]) # goid to term
     gd[,2] <- Term(gd[,2])
+    nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
+    rownames(nod) <- nod[,1]
+    nod[,2] = 1
+    nod[Term(allRes$GO.ID[1:input$posnodes]),2] = 2
+    colnames(nod) <- c("Name","Group")
+    gd[,1] <- match(gd[,1],nod[,1]) - 1
+    gd[,2] <- match(gd[,2],nod[,1]) - 1
     pdf(NULL)
-    simpleNetwork(gd,opacity=0.6,zoom=TRUE,fontSize=7,charge=-250)
+    forceNetwork(Links=gd,Nodes=nod,Source="from",Target="to",Value="weight",NodeID="Name",Group="Group",
+                 colourScale=JS("d3.scale.category10()"),zoom=TRUE,opacity=0.7,opacityNoHover = TRUE)
   })
 
-  output$neg_go_graph <- renderSimpleNetwork({
+  output$neg_go_graph <- renderForceNetwork({
     sampleGOdata <- neg_go()
     result <- neg_go_results()
     allRes <- GenTable(sampleGOdata, pValue = result,
@@ -651,8 +659,16 @@ shinyServer(function(input, output) {
     gd <- get.data.frame(ig, what = "edges")
     gd[,1] <- Term(gd[,1]) # goid to term
     gd[,2] <- Term(gd[,2])
+    nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
+    rownames(nod) <- nod[,1]
+    nod[,2] = 1
+    nod[Term(allRes$GO.ID[1:input$negnodes]),2] = 2
+    colnames(nod) <- c("Name","Group")
+    gd[,1] <- match(gd[,1],nod[,1]) - 1
+    gd[,2] <- match(gd[,2],nod[,1]) - 1
     pdf(NULL)
-    simpleNetwork(gd,opacity=0.6,zoom=TRUE,fontSize=7,charge=-250)
+    forceNetwork(Links=gd,Nodes=nod,Source="from",Target="to",Value="weight",NodeID="Name",Group="Group",
+                 colourScale=JS("d3.scale.category10()"),zoom=TRUE,opacity=0.7,opacityNoHover = TRUE)
   })
 
   output$ptable_dl <- downloadHandler(
