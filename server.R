@@ -67,11 +67,10 @@ shinyServer(function(input, output) {
 
   # reading the entire pcl 
   gsm_pcl <- reactive({
+    inFile <- input$file1
     withProgress(message = "Loading expression data",value=0.1,{
-      inFile <- input$file1
-      if (is.null(inFile))
-        return(NULL)   
-      gsm_pcl <- data.frame(fread(inFile$datapath, header = input$header1,sep=input$sep1), row.names = 1)
+      if (is.null(inFile)) gsm_pcl <- data.frame(fread("blood.f.pcl",header=TRUE,sep="\t"),row.names=1)
+      else gsm_pcl <- data.frame(fread(inFile$datapath, header = input$header1,sep=input$sep1), row.names = 1)
       incProgress(0.9)
     })
     gsm_pcl
@@ -81,10 +80,14 @@ shinyServer(function(input, output) {
   # this has the ages and other parameters/filters
   gsm_input <- eventReactive(input$upload2, {
       inFile <- input$file2
-      if (is.null(inFile))
-        return(NULL)   
-      gsm_input <- read.table(inFile$datapath, header=input$header2, sep = input$sep2, row.names=1)
-      colnames(gsm_input) <- tolower(colnames(gsm_input))
+      if (is.null(inFile)) {
+        gsm_input <- read.table("sample_f.csv",header=TRUE,sep=",",row.names=1)
+        colnames(gsm_input) <- tolower(colnames(gsm_input))
+      }
+      else { 
+        gsm_input <- read.table(inFile$datapath, header=input$header2, sep = input$sep2, row.names=1)
+        colnames(gsm_input) <- tolower(colnames(gsm_input))
+      }
       
     gsm_input
   })
@@ -137,13 +140,7 @@ shinyServer(function(input, output) {
     rownames(gsm_age) <- intersect(rownames(gsm_input),st_samples)
     gsm_age
   })
-  
-  # read button
-  output$upload2 <- renderUI({
-    if (is.null(input$file2)) return()
-    actionButton("upload2", "Read in file")
-  })
-  
+
   # sample age range
   lwr <- reactive({min(gsm_age()[,1])})
   upr <- reactive({max(gsm_age()[,1])})
@@ -383,7 +380,7 @@ shinyServer(function(input, output) {
     pdf(NULL)
     p <- ggplot(data=df, aes(x=score), environment = .e) + 
       geom_histogram(binwidth=.05,fill="red",col="gray",alpha=0.4) +
-      labs(x=paste(input$corr,"correlation coefficient magnitude"), y="") +
+      labs(x=paste("correlation coefficient magnitude"), y="") +
       theme(axis.text=element_text(size=7),
             axis.title=element_text(size=9))
 
@@ -641,15 +638,14 @@ shinyServer(function(input, output) {
     gn <- GOGraph(allRes$GO.ID[1:input$posnodes],GOBPPARENTS)
     ig <- igraph.from.graphNEL(gn)
     gd <- get.data.frame(ig, what = "edges")
-    gd[,1] <- Term(gd[,1]) # goid to term
-    gd[,2] <- Term(gd[,2])
     nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
     rownames(nod) <- nod[,1]
     nod[,2] = 1
-    nod[Term(allRes$GO.ID[1:input$posnodes]),2] = 2
+    nod[allRes$GO.ID[1:input$posnodes],2] = 2  ## highlight only sig genes
     colnames(nod) <- c("Name","Group")
     gd[,1] <- match(gd[,1],nod[,1]) - 1
     gd[,2] <- match(gd[,2],nod[,1]) - 1
+    nod[,1] = apply(data.frame(nod[,1]),1,function(x) Term(x))
     pdf(NULL)
     forceNetwork(Links=gd,Nodes=nod,Source="from",Target="to",Value="weight",NodeID="Name",Group="Group",
                  colourScale=JS("d3.scale.category10()"),zoom=TRUE,opacity=0.7,opacityNoHover = TRUE)
@@ -663,15 +659,14 @@ shinyServer(function(input, output) {
     gn <- GOGraph(allRes$GO.ID[1:input$negnodes],GOBPPARENTS)
     ig <- igraph.from.graphNEL(gn)
     gd <- get.data.frame(ig, what = "edges")
-    gd[,1] <- Term(gd[,1]) # goid to term
-    gd[,2] <- Term(gd[,2])
     nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
     rownames(nod) <- nod[,1]
     nod[,2] = 1
-    nod[Term(allRes$GO.ID[1:input$negnodes]),2] = 2
+    nod[allRes$GO.ID[1:input$negnodes],2] = 2  ## highlight only sig genes
     colnames(nod) <- c("Name","Group")
     gd[,1] <- match(gd[,1],nod[,1]) - 1
     gd[,2] <- match(gd[,2],nod[,1]) - 1
+    nod[,1] = apply(data.frame(nod[,1]),1,function(x) Term(x))
     pdf(NULL)
     forceNetwork(Links=gd,Nodes=nod,Source="from",Target="to",Value="weight",NodeID="Name",Group="Group",
                  colourScale=JS("d3.scale.category10()"),zoom=TRUE,opacity=0.7,opacityNoHover = TRUE)

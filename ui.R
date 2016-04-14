@@ -28,8 +28,7 @@ shinyUI(fluidPage(
       h4("Select a sample expression file."),
       bsTooltip('file1',"Row names: Entrez Gene ID, Column names: Sample ID",
                 placement="right",trigger="hover"),
-      
-      fileInput('file1',label=NULL,accept = c('.pcl')),
+      fileInput('file1',label=NULL,accept = c('.pcl','.txt')),
       radioButtons('sep1', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, '\t'),
       checkboxInput('header1', 'Header', TRUE),
       tags$hr(),
@@ -48,7 +47,9 @@ shinyUI(fluidPage(
                 trigger="hover"),
       radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, ','),
       checkboxInput('header2', 'Header', TRUE),    
-      uiOutput("upload2"),
+      hr(),
+      helpText("If no files are selected, stored sample data will be used."),
+      actionButton("upload2", "Read data"),
       conditionalPanel(
         condition = "input.upload2",
         tags$hr()
@@ -61,7 +62,7 @@ shinyUI(fluidPage(
         actionButton("run_samples", "Run samples")
       ),
       hr(),
-      helpText("Content by Murphy Lab at Princeton University")
+      h6("Created by the Murphy Lab at Princeton University")
     ),
     
     mainPanel(
@@ -168,7 +169,7 @@ shinyUI(fluidPage(
                                                        hr(),
                                                        forceNetworkOutput("pos_go_graph"),
                                                        helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=10)))
+                                                       sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=25)))
                    )
           ),
           
@@ -215,7 +216,7 @@ shinyUI(fluidPage(
                                                        hr(),
                                                        forceNetworkOutput("neg_go_graph"),
                                                        helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=10),
+                                                       sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=25),
                                                        hr()
                                       )
                                     )
