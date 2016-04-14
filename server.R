@@ -641,7 +641,7 @@ shinyServer(function(input, output) {
     nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
     rownames(nod) <- nod[,1]
     nod[,2] = 1
-    nod[allRes$GO.ID[1:input$posnodes],2] = 2  ## highlight only sig genes
+    nod[which(nod[,1] %in% allRes$GO.ID[1:input$posnodes]),2] = 2  ## highlight only sig genes
     colnames(nod) <- c("Name","Group")
     gd[,1] <- match(gd[,1],nod[,1]) - 1
     gd[,2] <- match(gd[,2],nod[,1]) - 1
@@ -662,7 +662,7 @@ shinyServer(function(input, output) {
     nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
     rownames(nod) <- nod[,1]
     nod[,2] = 1
-    nod[allRes$GO.ID[1:input$negnodes],2] = 2  ## highlight only sig genes
+    nod[which(nod[,1] %in% allRes$GO.ID[1:input$negnodes]),2] = 2  ## highlight only sig genes
     colnames(nod) <- c("Name","Group")
     gd[,1] <- match(gd[,1],nod[,1]) - 1
     gd[,2] <- match(gd[,2],nod[,1]) - 1
