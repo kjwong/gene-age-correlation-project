@@ -12,13 +12,21 @@ if (!require("org.Hs.eg.db")) {
   biocLite('org.Hs.eg.db')
 }
 if (!require("GO.db")) {
-  source("https://bioconductor.org/biocLite.R")
+  source("http://bioconductor.org/biocLite.R")
   biocLite("GO.db")
 }
 if (!require("GOstats")) {
-  source("https://bioconductor.org/biocLite.R")
+  source("http://bioconductor.org/biocLite.R")
   biocLite("GOstats")
 }
+if (!require("Rgraphviz")) {
+  source("http://bioconductor.org/biocLite.R")
+  biocLite("Rgraphviz")
+} 
+if (!require("S4Vectors")) {
+  source("http://bioconductor.org/biocLite.R")
+  biocLite("S4Vectors")
+} 
 
 if (!require("networkD3")) install.packages("networkD3")
 if (!require("igraph")) install.packages('igraph')
@@ -31,10 +39,8 @@ if (!require("ggplot2")) install.packages('ggplot2')
 if (!require("plotly")) install.packages('plotly')
 if (!require("stats")) install.packages('stats')
 if (!require("graph")) install.packages('graph')
-if (!require("Rgraphviz")) install.packages('Rgraphviz')
 if (!require("stats4")) install.packages('stats4')
-if (!require("S4Vectors")) install.packages('S4Vectors')
-    
+
 library("data.table")
 library(parallel)
 library(shiny)
