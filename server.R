@@ -530,12 +530,12 @@ shinyServer(function(input, output) {
     withProgress(message = "Generating positive GO terms\n", detail = "Compiling tables", value = 0.05, {
       gsm_pcl <- gsm_pcl()
       incProgress(0.05, detail = "Compiling tables")
-      ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
+      ann <- annFUN.org(input$postype,feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
       incProgress(0.1, detail = "Building GO DAG topology and annotations")
       geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
       names(geneList) <- rownames(gsm_pcl)
       selector <- function(x) {return (x==1)}
-      sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
+      sampleGOdata <- new("topGOdata",ontology=input$postype,allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
       incProgress(0.8)
     })
@@ -561,12 +561,12 @@ shinyServer(function(input, output) {
     withProgress(message = "Generating negative GO terms\n", detail = "Compiling tables", value = 0.05, {
       gsm_pcl <- gsm_pcl()
       incProgress(0.05, detail = "Compiling tables")
-      ann <- annFUN.org("BP",feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
+      ann <- annFUN.org(input$negtype,feasibleGenes=rownames(gsm_pcl),mapping = "org.Hs.eg.db",ID=c("entrez"))
       incProgress(0.1, detail = "Building GO DAG topology and annotations")
       geneList <- factor(as.integer (rownames(gsm_pcl) %in% all_predg))
       names(geneList) <- rownames(gsm_pcl)
       selector <- function(x) {return (x==1)}
-      sampleGOdata <- new("topGOdata",ontology="BP",allGenes=geneList,
+      sampleGOdata <- new("topGOdata",ontology=input$negtype,allGenes=geneList,
                           geneSel=selector,annot = annFUN.GO2genes,GO2genes=ann)
       incProgress(0.8)
     })
@@ -629,13 +629,26 @@ shinyServer(function(input, output) {
     allRes <- neg_go_table()
     DT::datatable(allRes, rownames=FALSE)
   })
-
+  # mapping for GO term hierarchy
+  posmap <- eventReactive(input$runposgt,{
+    if (input$postype == "BP") map <- GOBPPARENTS
+    else if (input$postype == "MF") map <- GOMFPARENTS
+    else if (input$postype == "CC") map <- GOCCPARENTS
+    map
+  })
+  # mapping for GO term hierarchy
+  negmap <- eventReactive(input$runneggt,{
+    if (input$negtype == "BP") map <- GOBPPARENTS
+    else if (input$negtype == "MF") map <- GOMFPARENTS
+    else if (input$negtype == "CC") map <- GOCCPARENTS
+    map
+  })
   output$pos_go_graph <- renderForceNetwork({
     sampleGOdata <- pos_go()
     result <- pos_go_results()
     allRes <- GenTable(sampleGOdata, pValue = result,
                        orderBy = "pValue",topNodes=1000)
-    gn <- GOGraph(allRes$GO.ID[1:input$posnodes],GOBPPARENTS)
+    gn <- GOGraph(allRes$GO.ID[1:input$posnodes],posmap())
     ig <- igraph.from.graphNEL(gn)
     gd <- get.data.frame(ig, what = "edges")
     nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))
@@ -656,7 +669,7 @@ shinyServer(function(input, output) {
     result <- neg_go_results()
     allRes <- GenTable(sampleGOdata, pValue = result,
                        orderBy = "pValue",topNodes=1000)
-    gn <- GOGraph(allRes$GO.ID[1:input$negnodes],GOBPPARENTS)
+    gn <- GOGraph(allRes$GO.ID[1:input$negnodes],negmap())
     ig <- igraph.from.graphNEL(gn)
     gd <- get.data.frame(ig, what = "edges")
     nod = data.frame(unique(c(unique(gd[,1]),unique(gd[,2]))))

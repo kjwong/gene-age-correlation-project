@@ -158,7 +158,16 @@ shinyUI(fluidPage(
                                     ),
                                     h4("Gene ontology analysis"),
                                     helpText("Perform GO term analysis for positively predictive genes."),
-                                    selectInput(inputId = "posstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t")),
+                                    fluidRow(
+                                      column(4,
+                                             bsTooltip('postype',"BP = Biological Process, MF = Molecular Function, CC = Cellular Component",
+                                                       placement = "top",trigger="hover"),
+                                             selectInput(inputId = "postype", label = "Choose a GO ontology:", choices = c("BP", "MF", "CC"),selected="BP")
+                                      ),
+                                      column(4,
+                                             selectInput(inputId = "posstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t"))
+                                      )
+                                    ),
                                     actionButton("runposgt", "Generate GO terms"),
                                     hr(),
                                     conditionalPanel(
@@ -169,7 +178,7 @@ shinyUI(fluidPage(
                                                        hr(),
                                                        forceNetworkOutput("pos_go_graph"),
                                                        helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=25)))
+                                                       sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=15)))
                    )
           ),
           
@@ -205,7 +214,16 @@ shinyUI(fluidPage(
                                     ),
                                     h4("Gene ontology analysis"),
                                     helpText("Perform GO term analysis for negatively predictive genes."),
-                                    selectInput(inputId = "negstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t")),
+                                    fluidRow(
+                                      column(4,
+                                             bsTooltip('negtype',"BP = Biological Process, MF = Molecular Function, CC = Cellular Component",
+                                                       placement = "top",trigger="hover"),
+                                             selectInput(inputId = "negtype", label = "Choose a GO ontology:", choices = c("BP", "MF", "CC"),selected="BP")
+                                      ),
+                                      column(4,
+                                              selectInput(inputId = "negstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t"))
+                                      )
+                                    ),
                                     actionButton("runneggt", "Generate GO terms"),
                                     hr(),
                                     conditionalPanel(
@@ -216,7 +234,7 @@ shinyUI(fluidPage(
                                                        hr(),
                                                        forceNetworkOutput("neg_go_graph"),
                                                        helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=25),
+                                                       sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=15),
                                                        hr()
                                       )
                                     )
