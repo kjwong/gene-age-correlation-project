@@ -148,7 +148,7 @@ shinyUI(fluidPage(
                                       column(4,
                                              uiOutput("heatposage")),
                                       column(4,
-                                             numericInput("heatposnum",label="Choose a number of genes to display:",value=100,min=3,max=NA),
+                                             numericInput("heatposnum",label="Choose a number of genes to display:",value=50,min=3,max=NA),
                                              bsTooltip('heatposnum',"minimum = 3",
                                                        placement="bottom",trigger="hover")),
                                       column(4,
