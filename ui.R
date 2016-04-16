@@ -25,7 +25,7 @@ shinyUI(fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      h4("Select a sample expression file."),
+      h4("Select an expression data file."),
       bsTooltip('file1',"Row names: Entrez Gene ID, Column names: Sample ID",
                 placement="right",trigger="hover"),
       fileInput('file1',label=NULL,accept = c('.pcl','.txt')),
@@ -48,18 +48,25 @@ shinyUI(fluidPage(
       radioButtons('sep2', 'Separator', c(Comma=',', Semicolon=';',Tab='\t'), inline=FALSE, ','),
       checkboxInput('header2', 'Header', TRUE),    
       hr(),
-      helpText("If no files are selected, stored sample data will be used."),
-      actionButton("upload2", "Read data"),
+      h4("Select a default dataset."),
+      uiOutput("defaultinfo"),
+      selectInput('default',label=NULL,choices=c("blood.f","GSE58137"),
+                  selected = "blood.f"),
+      h6("blood.f: Whole blood samples from the Affymetrix expression platform (GPL570)."),
+      h6("GSE58137: Whole blood samples from the Illumina Beadchip platform (GPL6947, GPL10558)."),
+      hr(),
+      helpText("If no files are selected, the default dataset will be used."),
+     
       conditionalPanel(
-        condition = "input.upload2",
-        tags$hr()
+        condition = "output.filters",
+        hr()
       ),
       uiOutput("filters"),
       conditionalPanel(
-        condition = "input.upload2",
+        condition = "output.filters",
         helpText("If left blank, all samples will be used."),
         hr(),
-        actionButton("run_samples", "Run samples")
+        actionButton("run_samples", "Run analysis")
       ),
       hr(),
       h6("Created by the Murphy Lab at Princeton University")
@@ -72,37 +79,42 @@ shinyUI(fluidPage(
         h3("Sample count by age"),
         helpText("The age distribution of your filtered samples."),
         plotlyOutput("plot"),
-        uiOutput("plot_caption"),
-        hr(),
-        fluidRow(
-          column(4,
-                 uiOutput("slider_plot")
+        uiOutput("plot1_caption"),
+        uiOutput("plot1_caption2"),
+        conditionalPanel(
+          condition = "output.plot",
+          hr(),
+          fluidRow(
+            column(4,
+                   uiOutput("slider_plot")
+            ),
+            column(4,
+                   selectInput("corr",label="Choose correlation method:",choices=c("spearman","pearson"),selected="spearman")
+            ),
+            column(4,
+                   numericInput("numruns",label="Choose number of runs [1,100]:",value=10,min=1,max=100),
+                   bsTooltip('numruns',"Increasing the number of runs will yield more accurate correlation scores but will take longer.",
+                             placement="bottom",trigger="hover")
+            )
+            
           ),
-          column(4,
-                 selectInput("corr",label="Choose correlation coefficient:",choices=c("pearson","spearman"),selected="pearson")
-          ),
-          column(4,
-                 numericInput("numruns",label="Choose number of runs [1,50]:",value=10,min=1,max=50),
-                 bsTooltip('numruns',"Increasing the number of runs will yield more accurate correlation scores but will take longer.",
-                           placement="bottom",trigger="hover")
-          )
           
-        ),
-        
-        actionButton("runpcl","Run correlation"),
-        hr()
+          actionButton("runpcl","Run correlation"),
+          hr()
+        )
       ),
       
       uiOutput("nosamp2"),
       conditionalPanel(
         condition = "output.plot2",
         h3("Predictive gene count"),
-        helpText("Predictive genes are those most correlated with age within your selected age range (~10% of total genes).")
+        helpText("Predictive genes are those most correlated with age within your selected age range.")
       ),
       conditionalPanel(
         condition = "input.runpcl",
         plotlyOutput("plot2"),
         uiOutput("plot2_caption"),
+        uiOutput("plot2_caption2"),
         hr(),
         conditionalPanel(
           condition = "output.plot2",
@@ -140,7 +152,7 @@ shinyUI(fluidPage(
                                              bsTooltip('heatposnum',"minimum = 3",
                                                        placement="bottom",trigger="hover")),
                                       column(4,
-                                             textInput("userposgenes",label="Choose genes:",value=""),
+                                             textInput("userposgenes",label="Choose specific genes to display:",value=""),
                                              bsTooltip('userposgenes',"Enter 3 or more gene names separated by space.",
                                                        placement="bottom",trigger="hover"),
                                              helpText("If left blank, all genes are used."))
@@ -162,10 +174,13 @@ shinyUI(fluidPage(
                                       column(4,
                                              bsTooltip('postype',"BP = Biological Process, MF = Molecular Function, CC = Cellular Component",
                                                        placement = "top",trigger="hover"),
-                                             selectInput(inputId = "postype", label = "Choose a GO ontology:", choices = c("BP", "MF", "CC"),selected="BP")
+                                             selectInput(inputId = "postype", label = "Choose a gene ontology:", choices = c("BP", "MF", "CC"),selected="BP")
                                       ),
                                       column(4,
-                                             selectInput(inputId = "posstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t"))
+                                          
+                                             selectInput(inputId = "posstat", label = "Choose a statistical test:", choices = c("fisher", "ks")),
+                                             bsTooltip('posstat',"fisher = Fisher exact test, ks = Kolmogorov-Smirnov test",
+                                                       placement = "top",trigger="hover")
                                       )
                                     ),
                                     actionButton("runposgt", "Generate GO terms"),
@@ -177,8 +192,8 @@ shinyUI(fluidPage(
                                                        downloadButton("pgo_dl","Download"),
                                                        hr(),
                                                        forceNetworkOutput("pos_go_graph"),
-                                                       helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("posnodes",label="Number of significant nodes:",value=5,min=1,max=15)))
+                                                       helpText("Significant GO terms (blue) are connected by their common ancestors (orange)."),
+                                                       uiOutput("posn")))
                    )
           ),
           
@@ -218,10 +233,12 @@ shinyUI(fluidPage(
                                       column(4,
                                              bsTooltip('negtype',"BP = Biological Process, MF = Molecular Function, CC = Cellular Component",
                                                        placement = "top",trigger="hover"),
-                                             selectInput(inputId = "negtype", label = "Choose a GO ontology:", choices = c("BP", "MF", "CC"),selected="BP")
+                                             selectInput(inputId = "negtype", label = "Choose a gene ontology:", choices = c("BP", "MF", "CC"),selected="BP")
                                       ),
                                       column(4,
-                                              selectInput(inputId = "negstat", label = "Choose a test for p-value:", choices = c("fisher", "ks", "t"))
+                                             bsTooltip('negstat',"fisher = Fisher exact test, ks = Kolmogorov-Smirnov test",
+                                                       placement = "top",trigger="hover"),
+                                             selectInput(inputId = "negstat", label = "Choose a test for p-value:", choices = c("fisher", "ks"))
                                       )
                                     ),
                                     actionButton("runneggt", "Generate GO terms"),
@@ -233,8 +250,8 @@ shinyUI(fluidPage(
                                                        downloadButton("ngo_dl","Download"),
                                                        hr(),
                                                        forceNetworkOutput("neg_go_graph"),
-                                                       helpText("Induced subgraph of the most significant GO terms."),
-                                                       sliderInput("negnodes",label="Number of significant nodes:",value=5,min=1,max=15),
+                                                       helpText("Significant GO terms (blue) are connected by their common ancestors (orange)."),
+                                                       uiOutput("negn"),
                                                        hr()
                                       )
                                     )
