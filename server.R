@@ -645,7 +645,7 @@ shinyServer(function(input, output) {
       allRes <- allRes[c("GO.ID","Term","Annotated","Significant","Fold Enrichment","pValue")]
       p <- allRes[,"pValue"]
       allRes[,"FDR"] <- round(p.adjust(p, method = "BH", n = length(p)),5)
-      allRes <- allRes[allRes$pValue < 0.05,]
+      if (min(allRes$FDR) < 0.05 ) allRes <- allRes[allRes$FDR < 0.05,]
       colnames(allRes) <- c("GO.ID", "GO Term","No. of genes","Overlap","Fold Enrichment","P-value","FDR")
       allRes <- allRes[order(allRes$FDR),]
     })
@@ -683,7 +683,7 @@ shinyServer(function(input, output) {
       allRes <- allRes[,-c(5)]
       p <- allRes[,"pValue"]
       allRes[,"FDR"] <- round(p.adjust(p, method = "fdr", n = length(p)),5)
-      allRes <- allRes[allRes$pValue < 0.05,]
+      if (min(allRes$FDR) < 0.05 ) allRes <- allRes[allRes$FDR < 0.05,]
       colnames(allRes) <- c("GO.ID", "GO Term","No. of genes","Overlap","Fold Enrichment","P-value","FDR")
       
       allRes <- allRes[order(allRes$FDR),]
