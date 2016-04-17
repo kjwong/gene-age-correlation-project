@@ -92,7 +92,7 @@ shinyServer(function(input, output) {
         gsm_input <- read.table(inFile$datapath, header=input$header2, sep = input$sep2, row.names=1)
         colnames(gsm_input) <- tolower(colnames(gsm_input))
       }
-      
+    gsm_input$age <- as.integer(round(gsm_input$age,0))
     gsm_input
   })
 
@@ -166,11 +166,13 @@ shinyServer(function(input, output) {
   inarng <- reactive({
     arng <- inlwr():inupr()
     count = 1
+    print(st_gsm_age()[,1])
     for (i in inlwr():inupr()) {
       if (!(i %in% st_gsm_age()[,1])) {
         arng <- arng[-count]
       }
       else count = count + 1
+      print(arng)
     }
     arng
   })
@@ -335,6 +337,7 @@ shinyServer(function(input, output) {
     nboot <- input$numruns
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
+    print(arng)
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
     withProgress(message = 'Calculating correlation scores', value = 0, {
       for(n in 1:nboot) {
@@ -344,6 +347,7 @@ shinyServer(function(input, output) {
         # for each age...
         for(j in 1:length(arng)) {
           age_gsm <- rownames(st_gsm_age)[which(st_gsm_age[,1]==arng[j])] # GSM names of age
+          
           if(length(age_gsm)==1) {
             bag_gsm <- c(bag_gsm, age_gsm) # if only 1 sample for the age, just add it to the bag
           } else {
@@ -404,6 +408,8 @@ shinyServer(function(input, output) {
   # histogram plot2 of magnitudes
   output$plot2 <- renderPlotly({
     .e <- environment()
+    print(length(all_predg))
+    print(dim(raw_scores))
     df <- cbind(data.frame(all_predg()), t(raw_scores()))
     score <- df[,2]
     pdf(NULL)
@@ -639,14 +645,13 @@ shinyServer(function(input, output) {
       incProgress(0.7, detail = "Aggregating results")
       allRes <- GenTable(sampleGOdata, pValue = result,
                          orderBy = "pValue",topNodes=1000)
-      allRes <- allRes[allRes$pValue < 0.05,]
       allRes[,"Fold Enrichment"] <- round(allRes[,"Significant"] / allRes[,"Expected"],1)
       incProgress(0.2)
       allRes <- allRes[c("GO.ID","Term","Annotated","Significant","Fold Enrichment","pValue")]
       p <- allRes[,"pValue"]
       allRes[,"FDR"] <- round(p.adjust(p, method = "BH", n = length(p)),5)
       colnames(allRes) <- c("GO.ID", "GO Term","No. of genes","Overlap","Fold Enrichment","P-value","FDR")
-      allRes <- allRes[allRes$FDR < 0.05,]
+      allRes <- allRes[allRes$FDR < 0.10,]
       allRes <- allRes[order(allRes$FDR),]
     })
     allRes
@@ -684,7 +689,7 @@ shinyServer(function(input, output) {
       p <- allRes[,"pValue"]
       allRes[,"FDR"] <- round(p.adjust(p, method = "fdr", n = length(p)),5)
       colnames(allRes) <- c("GO.ID", "GO Term","No. of genes","Overlap","Fold Enrichment","P-value","FDR")
-      allRes <- allRes[allRes$FDR < 0.05,]
+      allRes <- allRes[allRes$FDR < 0.10,]
       allRes <- allRes[order(allRes$FDR),]
     })
     allRes
