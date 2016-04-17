@@ -166,13 +166,11 @@ shinyServer(function(input, output) {
   inarng <- reactive({
     arng <- inlwr():inupr()
     count = 1
-    print(st_gsm_age()[,1])
     for (i in inlwr():inupr()) {
       if (!(i %in% st_gsm_age()[,1])) {
         arng <- arng[-count]
       }
       else count = count + 1
-      print(arng)
     }
     arng
   })
