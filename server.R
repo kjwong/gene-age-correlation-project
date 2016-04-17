@@ -646,7 +646,7 @@ shinyServer(function(input, output) {
       p <- allRes[,"pValue"]
       allRes[,"FDR"] <- round(p.adjust(p, method = "BH", n = length(p)),5)
       colnames(allRes) <- c("GO.ID", "GO Term","No. of genes","Overlap","Fold Enrichment","P-value","FDR")
-      allRes <- allRes[allRes$FDR < 0.10,]
+      allRes <- allRes[allRes$P-value < 0.05,]
       allRes <- allRes[order(allRes$FDR),]
     })
     allRes
@@ -684,7 +684,7 @@ shinyServer(function(input, output) {
       p <- allRes[,"pValue"]
       allRes[,"FDR"] <- round(p.adjust(p, method = "fdr", n = length(p)),5)
       colnames(allRes) <- c("GO.ID", "GO Term","No. of genes","Overlap","Fold Enrichment","P-value","FDR")
-      allRes <- allRes[allRes$FDR < 0.10,]
+      allRes <- allRes[allRes$P-value < 0.05,]
       allRes <- allRes[order(allRes$FDR),]
     })
     allRes
