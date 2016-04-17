@@ -335,7 +335,6 @@ shinyServer(function(input, output) {
     nboot <- input$numruns
     st_gsm_age <- st_gsm_age()
     st_gsm_pcl <- st_gsm_pcl()
-    print(arng)
     boot_rho <- array(NaN, c(nboot, nrow(st_gsm_pcl)))
     withProgress(message = 'Calculating correlation scores', value = 0, {
       for(n in 1:nboot) {
@@ -406,8 +405,6 @@ shinyServer(function(input, output) {
   # histogram plot2 of magnitudes
   output$plot2 <- renderPlotly({
     .e <- environment()
-    print(length(all_predg))
-    print(dim(raw_scores))
     df <- cbind(data.frame(all_predg()), t(raw_scores()))
     score <- df[,2]
     pdf(NULL)
