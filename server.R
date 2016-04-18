@@ -443,6 +443,7 @@ shinyServer(function(input, output) {
   pos_predg <- reactive({
     bxs_boot_fisherz <- bxs_boot_fisherz()
     pos_predg <- colnames(bxs_boot_fisherz)[which(bxs_boot_fisherz[4,]>=input$score_mag)]
+    pos_predg <- intersect(pos_predg, rownames(gene_sym()))
     pos_predg
   })
 
@@ -450,6 +451,8 @@ shinyServer(function(input, output) {
   neg_predg <- reactive({
     bxs_boot_fisherz <- bxs_boot_fisherz()
     neg_predg <- colnames(bxs_boot_fisherz)[which(bxs_boot_fisherz[4,]<0 & abs(bxs_boot_fisherz[4,])>=input$score_mag)]
+    neg_predg <- intersect(neg_predg, rownames(gene_sym()))
+    neg_predg
   })
 
   # all predictive genes
@@ -460,6 +463,7 @@ shinyServer(function(input, output) {
                                                       (bxs_boot_fisherz[4,]<0 & bxs_boot_fisherz[4,]<=quantile(bxs_boot_fisherz[4,],0.05,na.rm=TRUE)))]
       incProgress(0.9)
     })
+    all_predg <- intersect(all_predg, rownames(gene_sym()))
     all_predg
   })
 
