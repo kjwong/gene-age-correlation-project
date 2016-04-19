@@ -319,9 +319,9 @@ shinyServer(function(input, output) {
       incProgress(0.6,detail="Scaling rows to mean 0 and variance 1")
       idx <- apply(st_age_pcl,1,var)
       st_age_pcl_rowz <- t(apply(st_age_pcl, 1, scale))
-      rownames(st_age_pcl_rowz) <- rownames(st_gsm_pcl)
+      rownames(st_age_pcl_rowz) <- rownames(st_age_pcl)
       incProgress(0.3,detail="Removing null values")
-      st_age_pcl_rowz <- st_age_pcl_rowz[-which(idx==0),]
+      st_age_pcl_rowz <- st_age_pcl_rowz[which(idx!=0),]
       colnames(st_age_pcl_rowz) <- arng
       st_age_pcl_rowz
     })
