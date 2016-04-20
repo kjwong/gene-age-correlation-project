@@ -7,4 +7,4 @@
 Usage: <br />
 Download server.R and ui.R, and the NCBI text file. Run the app in an R IDE.<br />
 OR <br />
-Go to <a href = shiny.princeton.edu/gene-age-correlation-project/>shiny.princeton.edu/gene-age-correlation-project/</a>.<br />
+Go to <a href = "http://shiny.princeton.edu/gene-age-correlation-project"/>shiny.princeton.edu/gene-age-correlation-project/</a>.<br />
