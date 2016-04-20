@@ -18,7 +18,7 @@ library(networkD3)
 
 shinyUI(fluidPage(
   
-  h1("Web interface for analyzing age-associated gene expression in humans"),
+  h1("GAC: A Shiny based interface for analyzing age-associated gene expression in humans"),
   hr(),
   h4("This app lets you visualize and analyze the genes most correlated with age in a specified age range."),
   hr(),
